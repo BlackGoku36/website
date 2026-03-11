@@ -56,7 +56,7 @@ Both pass are composited before being displayed in the window.
 
 1. Opaque pass.
 2. Translucent pass without sampling `Opaque` pass.
-3. Translucent pass after sampling `Opaque` pass (also result in depth-test against opaque objects).
+3. Translucent pass with sampling `Opaque` pass (also results in depth-test against opaque objects).
 4. Final composition.
 
 ## SDR/HDR
