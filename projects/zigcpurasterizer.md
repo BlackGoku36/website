@@ -138,3 +138,8 @@ Barely any optimization techniques are implemented. I want to push it as much as
 I deliberately left out advanced graphical features (such as shadows, SSAO, IBL, and skeletal animation), to keep focus on
 core software rasterization pipeline. Since I have already implemented them in other graphics API projects, I am satisfied with
 visual quality so far achieved using just CPU.
+
+## Related Articles
+
+- [CPU Rasterizer From Scratch - Part 1](cpu-rasterizer-from-scratch-part1.html)
+- [CPU Rasterizer From Scratch - Part 2](cpu-rasterizer-from-scratch-part2.html)
