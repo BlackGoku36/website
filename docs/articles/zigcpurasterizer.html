@@ -58,7 +58,7 @@
 
 <p>The project is 2-pass forward renderer. The first is an opaque pass, where all opaques geometries are rendered with full shading. The second is translucent pass, all translucent triangles are sorted back-to-front and rendered with alpha transparency and crude screen-space refraction. Two pass are added together to form final pass and then displayed on screen.</p>
 
-<div class="image-collage"><div class="image-wrapper"><img src="../assets/junkshop_opaque.png" alt="Junkshop Scene (Opaque Pass)"></div><div class="image-wrapper"><img src="../assets/junkshop_transcluent.png" alt="junkshop Scene (Translucent Pass)"></div><div class="image-wrapper"><img src="../assets/junkshop_final.png" alt="junkshop Scene (Final Composition)"></div></div>
+<div class="image-collage"><div class="image-wrapper"><img src="../assets/junkshop_opaque.png" alt="Junkshop Scene (Opaque Pass)"></div><div class="image-wrapper"><img src="../assets/junkshop_translucent.png" alt="junkshop Scene (Translucent Pass)"></div><div class="image-wrapper"><img src="../assets/junkshop_final.png" alt="junkshop Scene (Final Composition)"></div></div>
 </section><section id='pbr-shading'><h2 class='sticky-header'>PBR Shading
 </h2>
 
@@ -122,6 +122,15 @@ framebuffer is sampled as "background color" to create refraction effect. Triang
 </ul>
 
 <div class="image-collage"><div class="image-wrapper"><img src="../assets/0_helmet.png" alt="Damaged Helmet (SDR)"></div><div class="image-wrapper"><img src="../assets/0_helmet.avif" alt="Damaged Helmet (HDR)"></div></div>
+
+<ul>
+<li><strong>Left</strong>: SDR <code>.png</code></li>
+<li><strong>Right</strong>: HDR <code>.avif</code> (converted from <code>.hdr</code> with ffmpeg). </li>
+</ul>
+
+<blockquote><p>If you can't see image on right, then maybe your browser doesn't support <code>.avif</code>. If colors are either off/muted or same
+ as image on left, then maybe your monitor displays in SDR range.</p>
+</blockquote>
 </section><section id='gltf'><h2 class='sticky-header'>GLTF
 </h2>
 
@@ -186,7 +195,7 @@ framebuffer is sampled as "background color" to create refraction effect. Triang
 </tr>
 <tr>
   <td style="text-align:left;">Junk Shop</td>
-  <td style="text-align:right;">2,014 ms</td>
+  <td style="text-align:right;">2,493 ms</td>
 </tr>
 <tr>
   <td style="text-align:left;">Tavern (cam 1)</td>
@@ -237,7 +246,7 @@ framebuffer is sampled as "background color" to create refraction effect. Triang
   <td style="text-align:left;">Junk Shop</td>
   <td style="text-align:right;">29,63,742</td>
   <td style="text-align:right;">7,196</td>
-  <td style="text-align:right;">7</td>
+  <td style="text-align:right;">11</td>
   <td style="text-align:right;">20</td>
   <td style="text-align:right;">0</td>
 </tr>

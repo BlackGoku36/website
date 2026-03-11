@@ -13,7 +13,7 @@ To maximise learning, but minimize distraction, aside from these libraries every
 The project is 2-pass forward renderer. The first is an opaque pass, where all opaques geometries are rendered with full shading. The second is translucent pass, all translucent triangles are sorted back-to-front and rendered with alpha transparency and crude screen-space refraction. Two pass are added together to form final pass and then displayed on screen.
 
 ![Junkshop Scene (Opaque Pass)](../assets/junkshop_opaque.png)
-![junkshop Scene (Translucent Pass)](../assets/junkshop_transcluent.png)
+![junkshop Scene (Translucent Pass)](../assets/junkshop_translucent.png)
 ![junkshop Scene (Final Composition)](../assets/junkshop_final.png)
 
 ## PBR Shading
@@ -73,6 +73,12 @@ The renderer follows a simple color pipeline:
 ![Damaged Helmet (SDR)](../assets/0_helmet.png)
 ![Damaged Helmet (HDR)](../assets/0_helmet.avif)
 
+- **Left**: SDR `.png`
+- **Right**: HDR `.avif` (converted from `.hdr` with ffmpeg). 
+
+> If you can't see image on right, then maybe your browser doesn't support `.avif`. If colors are either off/muted or same
+> as image on left, then maybe your monitor displays in SDR range.
+
 ## GLTF
 
 Following `.gltf` file features are supported:
@@ -115,7 +121,7 @@ Measurements taken on an M3 Pro (Single Threaded, 1024 x 576):
 |:-------------------------------|----------:|
 | Lumberyard's Bistro (Exterior) | 14,103 ms |
 | Lumberyard's Bistro (Interior) |  2,649 ms |
-| Junk Shop                      |  2,014 ms |
+| Junk Shop                      |  2,493 ms |
 | Tavern (cam 1)                 |    630 ms |
 | Tavern (cam 2)                 |    732 ms |
 | Knight                         |     49 ms |
@@ -126,7 +132,7 @@ Scene Statistics:
 |:-------------------------------|------------:|-----------------:|-----------:|------------:|------------------:|
 | Lumberyard's Bistro (Exterior) |    17,91,975|             1,507|          0 |           72|                 1 |
 | Lumberyard's Bistro (Interior) |     4,53,134|            26,151|          0 |           72|                 1 |
-| Junk Shop                      |    29,63,742|             7,196|          7 |           20|                 0 |
+| Junk Shop                      |    29,63,742|             7,196|         11 |           20|                 0 |
 | Tavern (cam 1)                 |     1,21,980|              2408|          0 |           17|                 0 |
 | Tavern (cam 2)                 |       88,617|              2625|          0 |           17|                 0 |
 | Knight                         |     1,04,377|                 6|          0 |            0|                 1 |
