@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urjasvi Suthar | Introduction</title>
+    <link rel="stylesheet" href="../css/prism-3.css">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="name">
+            <h1>Urjasvi Suthar</h1>
+            <button id="theme-toggle">
+<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M337.5-463Q311-498 289-537q-5 14-6.5 28.5T281-480q0 83 58 141t141 58q14 0 28.5-2t28.5-6q-39-22-74-48.5T396-396q-32-32-58.5-67ZM567-364.5Q630-328 702-308q-40 51-98 79.5T481-200q-117 0-198.5-81.5T201-480q0-65 28.5-123t79.5-98q20 72 56.5 135T453-452q51 51 114 87.5ZM743-380q-20-5-39.5-11T665-405q8-18 11.5-36.5T680-480q0-83-58.5-141.5T480-680q-20 0-38.5 3.5T405-665q-8-19-13.5-38T381-742q24-9 49-13.5t51-4.5q117 0 198.5 81.5T761-480q0 26-4.5 51T743-380ZM440-840v-120h80v120h-80Zm0 840v-120h80V0h-80Zm323-706-57-57 85-84 57 56-85 85ZM169-113l-57-56 85-85 57 57-85 84Zm671-327v-80h120v80H840ZM0-440v-80h120v80H0Zm791 328-85-85 57-57 84 85-56 57ZM197-706l-84-85 56-57 85 85-57 57Zm199 310Z"/></svg>
+</button>
+        </div>
+
+        <nav>
+            <a href="../index.html">Home</a><a href="../projects.html">Projects</a><a href="../articles.html">Articles</a>
+        </nav>
+    </header>
+
+    <div class="layout-grid">
+
+    <aside aria-label='Series Navigation' class='series-nav'><div class='sticky-sidebar'><h3>UndefinedLanguage</h3><nav><ul><li><a href='undefined-language-part1.html'>- Introduction</a></li></ul></nav></div></aside>
+
+    <main>
+        <article id="content-top">
+	<header class="article-header">
+		<h1>Introduction</h1>
+	</header>
+		<section id=''><p>Undefined Language started as a college project to learn about compiler technologies and take it as far as I 
+could. It was an ambitious project where I intended to write everything from scratch, including code 
+generation for multiple backends, and design the language as I go. This leads to it being true to its name 
+"Undefined Language". Though I do have some general plans for it at the moment: I want it to be easy to read, 
+nice to write, and ultimately something that doesn't get in anyone's way. </p>
+
+<p>Technically, it's going to be a statically-typed language that compiles to WASM bytecode (for now, maybe 
+aarch64 for macOS later). Whether it's going to have manually managed memory or garbage collection, I'm still 
+not sure what I would go with—I like both of them. The final goal right now is to be able to render a 
+triangle using WASM/WebGPU in the browser. Whatever is required to get there, I will implement.</p>
+</section><section id='what-i-have-right-now'><h2 class='sticky-header'>What I have right now
+</h2>
+
+<ul>
+<li><p><strong>Types:</strong> Int, Float, Bool.</p></li>
+<li><p><strong>Functions:</strong> Normal function with paramter and single-value return.</p></li>
+<li><p><strong>Loops:</strong> While (I forgot to implement <code>break</code> and <code>continue</code> :p).</p></li>
+<li><p><strong>Branching:</strong> If/Else</p></li>
+</ul>
+
+<p><strong>Example code:</strong></p>
+
+<pre><code class="language-txt">fn main() void {
+    var x: int = 0;
+    while (x < 5) {
+        if (x > 2) {
+            printInt(x);
+        }
+        x = x + 1;
+    }
+}
+
+fn printInt(a: int) void {
+    print(a);
+}
+</code></pre>
+
+<p><strong>Outputs:</strong></p>
+
+<pre><code class="language-txt">3
+4
+</code></pre>
+
+<p><code>fn main()</code> is the entry point of the program. <code>void</code> after it is the return type. Variables are declared 
+with <code>var</code> and initialized like that. Variables can be uninitialized (who knows what will happen if you 
+access them). The <code>while</code> loop and <code>if</code> statement are as you can identify, which is similar to any other 
+language. <code>fn printInt</code> is another function with an <code>a: int</code> parameter. It calls a <code>print</code> function which is 
+an imported JS function (it's hardcoded right now).</p>
+
+<p>Though I still need to implement:</p>
+
+<ul>
+<li><p><strong>Types:</strong> Struct, Enum, Array, String.</p></li>
+<li><p><strong>Functions:</strong> Foreign Function/Variable Interface, to interact with JS without any hardcoding.</p></li>
+<li><p><strong>Loops:</strong> For loop. Also <code>break</code> and <code>continue</code> of course.</p></li>
+</ul>
+
+<p>I'm giving myself a deadline to complete the WebGPU triangle demo before the end of the year.</p>
+</section><section id='some-implementation-details'><h2 class='sticky-header'>Some Implementation Details
+</h2>
+
+<p>Right now the whole compiler is split into 4 stages: Tokenizer, Parser, Analyzer, and Codegen. There's no 
+optimization pass right now, but I would love to eventually implement some. The tokenizer is bare simple—it 
+goes through each char, if it's single (like operators, braces, etc.) it outputs a token, if it's words it 
+matches against a list of accepted keywords and outputs tokens. The parser is recursive descent, which is 
+very simple to write and maintain unlike LALR, LR, etc. Though I am planning to update it to a Pratt parser 
+later when I have time. </p>
+
+<p>During the parsing period, symbol tables are updated. These tables contain information like variables, 
+branches, loops, function calls, scopes, etc. and their type information. The parser outputs an AST, which 
+contains information about other nodes, indexes to symbol tables (if required), and source code information. 
+The AST is internally stored in a contiguous array, with pointers to other nodes as integer indexes. The 
+analyzer traverses through the AST and does type checking by looking up the symbol tables as much as it can. 
+Codegen outputs WASM binary—it also goes through the same AST and looks up symbol tables to decide what to 
+output. There's no intermediate representation (IR) in between. Lastly, it also pretty prints information 
+from various passes into the terminal, so we can see what's happening.</p>
+</section><section id='some-problems-i-faced'><h2 class='sticky-header'>Some problems I faced
+</h2>
+
+<p><strong>Printing error messages:</strong> For accurate error messages, we need to know not only what happened but also 
+where it happened. For that we need to store source code information somewhere, and keep it alive for 
+various stages of the compiler. I thought that I couldn't store the entire string in the node itself, because 
+then it would become too big, so I ended up storing start and end indexes of the string in the source code 
+and line numbers. But then another problem—what do you do if the error spans two lines? I haven't gotten 
+around to doing that yet.</p>
+
+<p><strong>Storing type information:</strong> I spent a considerable amount of time thinking where I should put type 
+information that made sense. Also, what type of data structure should it be? I ended up with tables, more 
+tables, and even more tables. Then I understood why someone on the internet said that a compiler is 
+basically databases.</p>
+
+<p><strong>Catching errors:</strong> How should I catch errors? Is traversing the tree enough? How do I make sure it doesn't 
+catch false positives and negatives? I haven't solved it yet.</p>
+</section><section id='compared-to-others'><h2 class='sticky-header'>Compared to others
+</h2>
+
+<p>What I have noticed is that none of the other learning projects do all of the following together:</p>
+
+<ul>
+<li><p>Aggregated data types like array, struct, etc.</p></li>
+<li><p>Do anything useful outside of just running simple calculation code.</p></li>
+<li><p>Use multiple stages.</p></li>
+<li><p>Good error handling and messages.</p></li>
+<li><p>In-house codegen.</p></li>
+<li><p>WASM backend.</p></li>
+</ul>
+
+<p>Although it isn't strictly better than others right now, I aim to reach there.</p>
+</section><section id='next-steps'><h2 class='sticky-header'>Next steps
+</h2>
+
+<p>To build up momentum, I will start with easier tasks like <code>break</code>/<code>continue</code>, <code>for</code> loop, and then go to more 
+difficult ones, until I have all the prerequisites necessary to build the demo.</p>
+</section><section id='wanna-try-it'><h2 class='sticky-header'>Wanna try it?
+</h2>
+
+<p>The repository is public at <a href="https://github.com/BlackGoku36/UndefinedLanguage">GitHub</a>, you will find the 
+entire source code and instructions on how to compile it.
+I am not up for contributions, but I am up for talking about compilers :).</p>
+
+<hr />
+</section><section id='why-wasm-and-webgpu'><h2 class='sticky-header'>Why WASM and WebGPU?
+</h2>
+
+<p>Original plan was to output it to our custom VM, but since it was too much of work to not only design but 
+also implement it by myself, it made sense to use existing ones. WebAssembly turned out to be enticing choice 
+because it allow us to run our code on web and in other enviroments such as desktop/mobile, embedded, etc 
+with WASI. Which in theory let my code run everywhere.</p>
+
+<p>I choosed WebGPU, because I have bit of experience with it and also it is new API that gives much better 
+access to underlying GPU compared to other existing APIs like WebGL, making it more suitable for graphics 
+and computationally-heavy tasks. At the end of day, using WebGL instead shouldn't require much more efforts.</p>
+</section>
+
+		<footer class='pagination'><nav><a href='../articles.html'>Articles</a></nav></footer>
+
+</article>
+
+    </main>
+
+    <aside aria-label='Table of Contents' class='toc-nav'><div class='sticky-sidebar'><h3>Table Of Content</h3><nav><ul><li><a href='#content-top'>Back To Top</a></li><li><a href='#what-i-have-right-now'>What I have right now
+</a></li><li><a href='#some-implementation-details'>Some Implementation Details
+</a></li><li><a href='#some-problems-i-faced'>Some problems I faced
+</a></li><li><a href='#compared-to-others'>Compared to others
+</a></li><li><a href='#next-steps'>Next steps
+</a></li><li><a href='#wanna-try-it'>Wanna try it?
+</a></li><li><a href='#why-wasm-and-webgpu'>Why WASM and WebGPU?
+</a></li></ul></nav></div></aside>
+
+    </div>
+
+    <footer class="contacts">
+    	<address><a href="https://x.com/UrjasviS">Twitter</a><a href="https://github.com/BlackGoku36">Github</a><a href="mailto:urjasvisuthar@gmail.com">Email</a><a href="https://www.linkedin.com/in/urjasvi-suthar-bg36">LinkedIn</a></address>
+        <p>&copy; 2026 Urjasvi Suthar</p>
+    </footer>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/prism-3.js"></script>
+</body>
+</html>

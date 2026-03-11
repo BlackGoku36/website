@@ -1,0 +1,34 @@
+WebAssembly wasn't designed and created to replace JavaScript, but rather complement it and make the two of them work together in tandem. As we will see, some parts of code should see benefits from using WASM when compared to JS, but some parts would rather be in JS itself. We will discuss what problems JavaScript has, how WebAssembly solves them, what WebAssembly's limitations and benefits are over JavaScript.
+
+## What problems does JavaScript have?
+
+The browser has to fetch JavaScript code from the server, then compile it just like any other language. Depending on how a particular browser implements it, JavaScript is either compiled to bytecode, machine code or just interpreted in the old-school way. The browser has to do this on the go, and it might have to compile/interpret the same piece of code multiple times.
+
+1. **Download-time and Load-time latency:**
+	- The browser has to fetch JavaScript code from the server, and since the size of a text file is a lot more than the size of a binary file, it will take a lot more time to download which will lead to load-time latency. This is important on the web, the less data you need to download the better it is. That is why there are programs such as JS/CSS minifiers which try to shave off as many bytes as possible by removing whitespaces or turning many-word identifiers into few-character identifiers.
+	- The compiler has to parse the text file first, then convert it to code in another format (intermediate representation), optimize it and finally convert it to the end format (such as bytecode or machine code). Parsing + Optimization takes a lot of time, so we have even more latency.
+2. **Execution Speed:**
+	- To decrease the above load-time latency, implementations sometimes only compile a certain part of code instead of the whole, this might mean that the compiler might have to compile a particular part of code again and again. This redundancy will make the whole code a lot slower.
+	- To decrease the load-time even more, the implementation can just skip optimization passes, which would make the resulting code a lot slower.
+	- JavaScript language design such as dynamic typing and garbage collection (automatic memory management), would make things even worse.
+
+## How does it solve those problems?
+
+To solve the above problems, WASM was introduced.
+
+1. **Download-time and load-time latency:**
+	- The browser would "only" need to fetch binary file(s) that are already compiled. So the amount of bytes to fetch would be a lot less, and also we would skip all the compilation steps and just run it directly.
+2. **Execution Speed**:
+	- The whole code is compiled to WASM bytecode, so there's no need to re-compile some parts again and again.
+	- Since the bytecode would already be compiled and optimized by the compiler, the code would run even faster.
+	- Since system programming languages like C, Rust, Zig, etc. are used to compile to binary, and since they are typically statically typed with manual memory management, we would have faster code.
+
+## Additional benefits
+
+- **Single Instruction Multiple Data (SIMD)**: WASM supports vector operations that are native to hardware. With this you can run calculations that require doing the same operations but on multiple data, which are typically used in image and signal processing.
+- **Multi-Threading**: Although not additional as JavaScript can do it with WebWorker API, you can enjoy low overhead with WASM.
+
+## Limitations?
+
+1. **Performance**: Although many times WASM is faster than JS, there are times when browsers can compile JS to native code (by using a technique called [Just-In-Time Compilation](https://en.wikipedia.org/wiki/Just-in-time_compilation)) and execute it. It wins when compilation overhead is a lot less than the execution of the said code. JavaScript engines such as JavaScriptCore (WebKit, Safari) and V8 (Chromium, Chrome) are capable of doing this. This can change in coming years, as WASM is still a relatively new technology and JS has been given years of head start for optimization.
+2. **JavaScript can't be eliminated entirely**: It is not possible to manipulate DOM elements directly from WASM, instead it is done through bindings between JS and WASM. Also, just manipulating a button color (through WASM) doesn't incur any performance penalty, but doing it repeatedly can become overhead.

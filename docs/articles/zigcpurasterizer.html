@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urjasvi Suthar | ZigCPURasterizer</title>
+    <link rel="stylesheet" href="../css/prism-3.css">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="name">
+            <h1>Urjasvi Suthar</h1>
+            <button id="theme-toggle">
+<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M337.5-463Q311-498 289-537q-5 14-6.5 28.5T281-480q0 83 58 141t141 58q14 0 28.5-2t28.5-6q-39-22-74-48.5T396-396q-32-32-58.5-67ZM567-364.5Q630-328 702-308q-40 51-98 79.5T481-200q-117 0-198.5-81.5T201-480q0-65 28.5-123t79.5-98q20 72 56.5 135T453-452q51 51 114 87.5ZM743-380q-20-5-39.5-11T665-405q8-18 11.5-36.5T680-480q0-83-58.5-141.5T480-680q-20 0-38.5 3.5T405-665q-8-19-13.5-38T381-742q24-9 49-13.5t51-4.5q117 0 198.5 81.5T761-480q0 26-4.5 51T743-380ZM440-840v-120h80v120h-80Zm0 840v-120h80V0h-80Zm323-706-57-57 85-84 57 56-85 85ZM169-113l-57-56 85-85 57 57-85 84Zm671-327v-80h120v80H840ZM0-440v-80h120v80H0Zm791 328-85-85 57-57 84 85-56 57ZM197-706l-84-85 56-57 85 85-57 57Zm199 310Z"/></svg>
+</button>
+        </div>
+
+        <nav>
+            <a href="../index.html">Home</a><a href="../projects.html">Projects</a><a href="../articles.html">Articles</a>
+        </nav>
+    </header>
+
+    <div class="layout-grid">
+
+    
+
+    <main>
+        <article id="content-top">
+	<header class="article-header">
+		<h1>ZigCPURasterizer</h1>
+	</header>
+		<section id='introduction'><h2 class='sticky-header'>Introduction
+</h2>
+
+<p><a href="https://github.com/BlackGoku36/ZigCPURasterizer">ZigCPURasterizer</a> is a CPU software rasterizer written in Zig. I initially wrote it to study how a rasterizer work, and how GPU process input geometry into an image, and inner working of graphics pipeline from start to finish. It was later pushed to handle loading glTF scenes with textures and PBR lighitng.</p>
+
+<p>To maximise learning, but minimize distraction, aside from these libraries everything else is written from scratch:</p>
+
+<ul>
+<li><a href="https://github.com/floooh/sokol">sokol</a>: Display rendered image in a window.</li>
+<li><a href="https://github.com/kooparse/zgltf/tree/main">zgltf</a>: Parser for <code>.gltf</code> files</li>
+<li><a href="https://github.com/zigimg/zigimg">zigimg</a>: Library for reading/writing <code>.png</code> files.</li>
+</ul>
+</section><section id='forward-renderer'><h2 class='sticky-header'>Forward Renderer
+</h2>
+
+<p>The project is 2-pass forward renderer. The first is an opaque pass, where all opaques geometries are rendered with full shading. The second is translucent pass, all translucent triangles are sorted back-to-front and rendered with alpha transparency and crude screen-space refraction. Two pass are added together to form final pass and then displayed on screen.</p>
+
+<div class="image-collage"><div class="image-wrapper"><img src="../assets/junkshop_opaque.png" alt="Junkshop Scene (Opaque Pass)"></div><div class="image-wrapper"><img src="../assets/junkshop_transcluent.png" alt="junkshop Scene (Translucent Pass)"></div><div class="image-wrapper"><img src="../assets/junkshop_final.png" alt="junkshop Scene (Final Composition)"></div></div>
+</section><section id='pbr-shading'><h2 class='sticky-header'>PBR Shading
+</h2>
+
+<p>Industry standard PBR shading model is implemented:</p>
+
+<ul>
+<li>BRDF: Cook-Torrence BRDF</li>
+<li>NDF: Trowbridge-Reitz GGX model</li>
+<li>Geometry Function: Smith's Schlick-GGX approximation</li>
+<li>Fresnel: Fresnel-Schlick approximation</li>
+</ul>
+
+<p>It uses glTF's metallic-roughness workflow for PBR texturing.</p>
+</section><section id='multiple-lights'><h2 class='sticky-header'>Multiple Lights
+</h2>
+
+<p>Multiple lighting of different types is implemented:</p>
+
+<ul>
+<li>Directional / Sun Light</li>
+<li>Point Light</li>
+<li>Area Light: LTC Area Light from <a href="https://eheitzresearch.wordpress.com/415-2/">Real-Time Polygonal-Light Shading with Linearly Transformed Cosines</a>.</li>
+</ul>
+
+<div class="image-collage"><div class="image-wrapper"><img src="../assets/sunlight.png" alt="Directional Light"></div><div class="image-wrapper"><img src="../assets/pointlight.png" alt="Point Light"></div><div class="image-wrapper"><img src="../assets/arealight.png" alt="Area Light"></div></div>
+</section><section id='transmission-shading'><h2 class='sticky-header'>Transmission Shading
+</h2>
+
+<p>Implementation is based on order-dependent transparency (sorted). Two framebuffers are used:</p>
+
+<ul>
+<li><strong>Opaque</strong>: Only meshes with opaque materials are rendered.</li>
+<li><strong>Translucent</strong>: Meshes with alpha-blending or transmission materials are rendered here. During this pass, the <code>Opaque</code>
+framebuffer is sampled as "background color" to create refraction effect. Triangles in this pass are first sorted back-to-front.</li>
+</ul>
+
+<p>Both pass are composited before being displayed in the window.</p>
+
+<div class="image-collage"><div class="image-wrapper"><img src="../assets/bistro_opaque.png" alt="Bistro Scene (Opaque Pass)"></div><div class="image-wrapper"><img src="../assets/bistro_transcluent_obj.png" alt="Bistro Scene (Translucent Pass - Objects)"></div><div class="image-wrapper"><img src="../assets/bistro_transcluent.png" alt="Bistro Scene (Translucent Pass)"></div><div class="image-wrapper"><img src="../assets/bistro_final.png" alt="Bistro Scene (Final Composition)"></div></div>
+
+<ol>
+<li>Opaque pass.</li>
+<li>Translucent pass without sampling <code>Opaque</code> pass.</li>
+<li>Translucent pass after sampling <code>Opaque</code> pass (also result in depth-test against opaque objects).</li>
+<li>Final composition.</li>
+</ol>
+</section><section id='sdr-hdr'><h2 class='sticky-header'>SDR/HDR
+</h2>
+
+<p>The renderer follows a simple color pipeline:</p>
+
+<ul>
+<li>Texture (Stored; sRGB): Textures used by glTF are in <code>sRGB</code> space by default.</li>
+<li>Texture (Loaded; Linear): Color Textures are converted to <code>linear</code> space; Normal maps to [-1, 1] space.</li>
+<li>Render (Linear): All rendering process is done in <code>linear</code> space.</li>
+<li>Export (sRGB):
+<ul>
+<li>SDR <code>.png</code>: Colors are tone-mapped (using a simple Reinhard operator) to <code>sRGB</code> space.</li>
+<li>HDR <code>.hdr</code>: Colors are exported directly in linear space with no tone-mapping.</li>
+</ul></li>
+</ul>
+
+<div class="image-collage"><div class="image-wrapper"><img src="../assets/0_helmet.png" alt="Damaged Helmet (SDR)"></div><div class="image-wrapper"><img src="../assets/0_helmet.avif" alt="Damaged Helmet (HDR)"></div></div>
+</section><section id='gltf'><h2 class='sticky-header'>GLTF
+</h2>
+
+<p>Following <code>.gltf</code> file features are supported:</p>
+
+<ul>
+<li>Scenes</li>
+<li>Meshes
+<ul>
+<li>UVs</li>
+<li>Tangents</li>
+<li>Normals</li>
+</ul></li>
+<li>Images
+<ul>
+<li>color</li>
+<li>metallic_roughness</li>
+<li>emissive</li>
+<li>transmission</li>
+<li>occlusion</li>
+</ul></li>
+<li>Materials
+<ul>
+<li>metallic_roughness</li>
+<li>emissive_factor</li>
+<li>transmission_factor</li>
+<li>ior</li>
+<li>alpha_mode</li>
+</ul></li>
+<li>Camera</li>
+<li>khr_lights_punctual</li>
+<li>khr_materials_emissive_strength</li>
+<li>khr_materials_ior</li>
+<li>khr_materials_transmission</li>
+</ul>
+
+<p>Because area lights aren't natively supported by glTF spec., a mesh with 4 vertices, name starting with <code>arealight_</code> and an emissive material is treated as area light. The light is pointed in direction of mesh's normal and is assumed to be single-sided.</p>
+
+<p>Tangents and Normals are dynamically calculated from the mesh if they are missing from the <code>.gltf</code> files.</p>
+
+<div class="image-collage"><div class="image-wrapper"><img src="../assets/0_tavern.png" alt="Tavern"></div><div class="image-wrapper"><img src="../assets/1_tavern.png" alt="Tavern"></div></div>
+</section><section id='performance'><h2 class='sticky-header'>Performance
+</h2>
+
+<p>Measurements taken on an M3 Pro (Single Threaded, 1024 x 576):</p>
+
+<table>
+<thead>
+<tr>
+  <th style="text-align:left;">Scene</th>
+  <th style="text-align:right;">Time (ms)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td style="text-align:left;">Lumberyard's Bistro (Exterior)</td>
+  <td style="text-align:right;">14,103 ms</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Lumberyard's Bistro (Interior)</td>
+  <td style="text-align:right;">2,649 ms</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Junk Shop</td>
+  <td style="text-align:right;">2,014 ms</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Tavern (cam 1)</td>
+  <td style="text-align:right;">630 ms</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Tavern (cam 2)</td>
+  <td style="text-align:right;">732 ms</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Knight</td>
+  <td style="text-align:right;">49 ms</td>
+</tr>
+</tbody>
+</table>
+
+<p>Scene Statistics:</p>
+
+<table>
+<thead>
+<tr>
+  <th style="text-align:left;">Scene</th>
+  <th style="text-align:right;">Opaque Tris</th>
+  <th style="text-align:right;">Translucent Tris</th>
+  <th style="text-align:right;">Area Light</th>
+  <th style="text-align:right;">Point Light</th>
+  <th style="text-align:right;">Directional Light</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td style="text-align:left;">Lumberyard's Bistro (Exterior)</td>
+  <td style="text-align:right;">17,91,975</td>
+  <td style="text-align:right;">1,507</td>
+  <td style="text-align:right;">0</td>
+  <td style="text-align:right;">72</td>
+  <td style="text-align:right;">1</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Lumberyard's Bistro (Interior)</td>
+  <td style="text-align:right;">4,53,134</td>
+  <td style="text-align:right;">26,151</td>
+  <td style="text-align:right;">0</td>
+  <td style="text-align:right;">72</td>
+  <td style="text-align:right;">1</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Junk Shop</td>
+  <td style="text-align:right;">29,63,742</td>
+  <td style="text-align:right;">7,196</td>
+  <td style="text-align:right;">7</td>
+  <td style="text-align:right;">20</td>
+  <td style="text-align:right;">0</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Tavern (cam 1)</td>
+  <td style="text-align:right;">1,21,980</td>
+  <td style="text-align:right;">2408</td>
+  <td style="text-align:right;">0</td>
+  <td style="text-align:right;">17</td>
+  <td style="text-align:right;">0</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Tavern (cam 2)</td>
+  <td style="text-align:right;">88,617</td>
+  <td style="text-align:right;">2625</td>
+  <td style="text-align:right;">0</td>
+  <td style="text-align:right;">17</td>
+  <td style="text-align:right;">0</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Knight</td>
+  <td style="text-align:right;">1,04,377</td>
+  <td style="text-align:right;">6</td>
+  <td style="text-align:right;">0</td>
+  <td style="text-align:right;">0</td>
+  <td style="text-align:right;">1</td>
+</tr>
+</tbody>
+</table>
+</section><section id='future'><h2 class='sticky-header'>Future
+</h2>
+
+<p>Barely any optimization techniques are implemented. I want to push it as much as possible by implementing various graphics optimization techniques, before looking at tried-and-tested SIMD instructions and multi-threading.</p>
+
+<p>I deliberately left out advanced graphical features (such as shadows, SSAO, IBL, and skeletal animation), to keep focus on
+core software rasterization pipeline. Since I have already implemented them in other graphics API projects, I am satisfied with
+visual quality so far achieved using just CPU.</p>
+</section>
+
+		<footer class='pagination'><nav><a href='../projects.html'>Projects</a></nav></footer>
+
+</article>
+
+    </main>
+
+    
+
+    </div>
+
+    <footer class="contacts">
+    	<address><a href="https://x.com/UrjasviS">Twitter</a><a href="https://github.com/BlackGoku36">Github</a><a href="mailto:urjasvisuthar@gmail.com">Email</a><a href="https://www.linkedin.com/in/urjasvi-suthar-bg36">LinkedIn</a></address>
+        <p>&copy; 2026 Urjasvi Suthar</p>
+    </footer>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/prism-3.js"></script>
+</body>
+</html>

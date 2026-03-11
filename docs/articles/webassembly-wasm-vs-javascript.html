@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urjasvi Suthar | WASM vs JS</title>
+    <link rel="stylesheet" href="../css/prism-3.css">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="name">
+            <h1>Urjasvi Suthar</h1>
+            <button id="theme-toggle">
+<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M337.5-463Q311-498 289-537q-5 14-6.5 28.5T281-480q0 83 58 141t141 58q14 0 28.5-2t28.5-6q-39-22-74-48.5T396-396q-32-32-58.5-67ZM567-364.5Q630-328 702-308q-40 51-98 79.5T481-200q-117 0-198.5-81.5T201-480q0-65 28.5-123t79.5-98q20 72 56.5 135T453-452q51 51 114 87.5ZM743-380q-20-5-39.5-11T665-405q8-18 11.5-36.5T680-480q0-83-58.5-141.5T480-680q-20 0-38.5 3.5T405-665q-8-19-13.5-38T381-742q24-9 49-13.5t51-4.5q117 0 198.5 81.5T761-480q0 26-4.5 51T743-380ZM440-840v-120h80v120h-80Zm0 840v-120h80V0h-80Zm323-706-57-57 85-84 57 56-85 85ZM169-113l-57-56 85-85 57 57-85 84Zm671-327v-80h120v80H840ZM0-440v-80h120v80H0Zm791 328-85-85 57-57 84 85-56 57ZM197-706l-84-85 56-57 85 85-57 57Zm199 310Z"/></svg>
+</button>
+        </div>
+
+        <nav>
+            <a href="../index.html">Home</a><a href="../projects.html">Projects</a><a href="../articles.html">Articles</a>
+        </nav>
+    </header>
+
+    <div class="layout-grid">
+
+    <aside aria-label='Series Navigation' class='series-nav'><div class='sticky-sidebar'><h3>WebAssembly Series</h3><nav><ul><li><a href='webassembly-introduction.html'>Introduction</a></li><li><a href='webassembly-wasm-vs-javascript.html'>- WASM vs JS</a></li><li><a href='webassembly-excavation-part1.html'>Excavation I</a></li></ul></nav></div></aside>
+
+    <main>
+        <article id="content-top">
+	<header class="article-header">
+		<h1>WASM vs JS</h1>
+	</header>
+		<section id=''><p>WebAssembly wasn't designed and created to replace JavaScript, but rather complement it and make the two of them work together in tandem. As we will see, some parts of code should see benefits from using WASM when compared to JS, but some parts would rather be in JS itself. We will discuss what problems JavaScript has, how WebAssembly solves them, what WebAssembly's limitations and benefits are over JavaScript.</p>
+</section><section id='what-problems-does-javascript-have'><h2 class='sticky-header'>What problems does JavaScript have?
+</h2>
+
+<p>The browser has to fetch JavaScript code from the server, then compile it just like any other language. Depending on how a particular browser implements it, JavaScript is either compiled to bytecode, machine code or just interpreted in the old-school way. The browser has to do this on the go, and it might have to compile/interpret the same piece of code multiple times.</p>
+
+<ol>
+<li><strong>Download-time and Load-time latency:</strong>
+<ul>
+<li>The browser has to fetch JavaScript code from the server, and since the size of a text file is a lot more than the size of a binary file, it will take a lot more time to download which will lead to load-time latency. This is important on the web, the less data you need to download the better it is. That is why there are programs such as JS/CSS minifiers which try to shave off as many bytes as possible by removing whitespaces or turning many-word identifiers into few-character identifiers.</li>
+<li>The compiler has to parse the text file first, then convert it to code in another format (intermediate representation), optimize it and finally convert it to the end format (such as bytecode or machine code). Parsing + Optimization takes a lot of time, so we have even more latency.</li>
+</ul></li>
+<li><strong>Execution Speed:</strong>
+<ul>
+<li>To decrease the above load-time latency, implementations sometimes only compile a certain part of code instead of the whole, this might mean that the compiler might have to compile a particular part of code again and again. This redundancy will make the whole code a lot slower.</li>
+<li>To decrease the load-time even more, the implementation can just skip optimization passes, which would make the resulting code a lot slower.</li>
+<li>JavaScript language design such as dynamic typing and garbage collection (automatic memory management), would make things even worse.</li>
+</ul></li>
+</ol>
+</section><section id='how-does-it-solve-those-problems'><h2 class='sticky-header'>How does it solve those problems?
+</h2>
+
+<p>To solve the above problems, WASM was introduced.</p>
+
+<ol>
+<li><strong>Download-time and load-time latency:</strong>
+<ul>
+<li>The browser would "only" need to fetch binary file(s) that are already compiled. So the amount of bytes to fetch would be a lot less, and also we would skip all the compilation steps and just run it directly.</li>
+</ul></li>
+<li><strong>Execution Speed</strong>:
+<ul>
+<li>The whole code is compiled to WASM bytecode, so there's no need to re-compile some parts again and again.</li>
+<li>Since the bytecode would already be compiled and optimized by the compiler, the code would run even faster.</li>
+<li>Since system programming languages like C, Rust, Zig, etc. are used to compile to binary, and since they are typically statically typed with manual memory management, we would have faster code.</li>
+</ul></li>
+</ol>
+</section><section id='additional-benefits'><h2 class='sticky-header'>Additional benefits
+</h2>
+
+<ul>
+<li><strong>Single Instruction Multiple Data (SIMD)</strong>: WASM supports vector operations that are native to hardware. With this you can run calculations that require doing the same operations but on multiple data, which are typically used in image and signal processing.</li>
+<li><strong>Multi-Threading</strong>: Although not additional as JavaScript can do it with WebWorker API, you can enjoy low overhead with WASM.</li>
+</ul>
+</section><section id='limitations'><h2 class='sticky-header'>Limitations?
+</h2>
+
+<ol>
+<li><strong>Performance</strong>: Although many times WASM is faster than JS, there are times when browsers can compile JS to native code (by using a technique called <a href="https://en.wikipedia.org/wiki/Just-in-time_compilation">Just-In-Time Compilation</a>) and execute it. It wins when compilation overhead is a lot less than the execution of the said code. JavaScript engines such as JavaScriptCore (WebKit, Safari) and V8 (Chromium, Chrome) are capable of doing this. This can change in coming years, as WASM is still a relatively new technology and JS has been given years of head start for optimization.</li>
+<li><strong>JavaScript can't be eliminated entirely</strong>: It is not possible to manipulate DOM elements directly from WASM, instead it is done through bindings between JS and WASM. Also, just manipulating a button color (through WASM) doesn't incur any performance penalty, but doing it repeatedly can become overhead.</li>
+</ol>
+</section>
+
+		<footer class='pagination'><nav><a href='webassembly-introduction.html'>< Prev</a><a href='../articles.html'>Articles</a><a href='webassembly-excavation-part1.html'>Next ></a></nav></footer>
+
+</article>
+
+    </main>
+
+    <aside aria-label='Table of Contents' class='toc-nav'><div class='sticky-sidebar'><h3>Table Of Content</h3><nav><ul><li><a href='#content-top'>Back To Top</a></li><li><a href='#what-problems-does-javascript-have'>What problems does JavaScript have?
+</a></li><li><a href='#how-does-it-solve-those-problems'>How does it solve those problems?
+</a></li><li><a href='#additional-benefits'>Additional benefits
+</a></li><li><a href='#limitations'>Limitations?
+</a></li></ul></nav></div></aside>
+
+    </div>
+
+    <footer class="contacts">
+    	<address><a href="https://x.com/UrjasviS">Twitter</a><a href="https://github.com/BlackGoku36">Github</a><a href="mailto:urjasvisuthar@gmail.com">Email</a><a href="https://www.linkedin.com/in/urjasvi-suthar-bg36">LinkedIn</a></address>
+        <p>&copy; 2026 Urjasvi Suthar</p>
+    </footer>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/prism-3.js"></script>
+</body>
+</html>

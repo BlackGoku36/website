@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urjasvi Suthar | Part 2</title>
+    <link rel="stylesheet" href="../css/prism-3.css">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="name">
+            <h1>Urjasvi Suthar</h1>
+            <button id="theme-toggle">
+<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M337.5-463Q311-498 289-537q-5 14-6.5 28.5T281-480q0 83 58 141t141 58q14 0 28.5-2t28.5-6q-39-22-74-48.5T396-396q-32-32-58.5-67ZM567-364.5Q630-328 702-308q-40 51-98 79.5T481-200q-117 0-198.5-81.5T201-480q0-65 28.5-123t79.5-98q20 72 56.5 135T453-452q51 51 114 87.5ZM743-380q-20-5-39.5-11T665-405q8-18 11.5-36.5T680-480q0-83-58.5-141.5T480-680q-20 0-38.5 3.5T405-665q-8-19-13.5-38T381-742q24-9 49-13.5t51-4.5q117 0 198.5 81.5T761-480q0 26-4.5 51T743-380ZM440-840v-120h80v120h-80Zm0 840v-120h80V0h-80Zm323-706-57-57 85-84 57 56-85 85ZM169-113l-57-56 85-85 57 57-85 84Zm671-327v-80h120v80H840ZM0-440v-80h120v80H0Zm791 328-85-85 57-57 84 85-56 57ZM197-706l-84-85 56-57 85 85-57 57Zm199 310Z"/></svg>
+</button>
+        </div>
+
+        <nav>
+            <a href="../index.html">Home</a><a href="../projects.html">Projects</a><a href="../articles.html">Articles</a>
+        </nav>
+    </header>
+
+    <div class="layout-grid">
+
+    <aside aria-label='Series Navigation' class='series-nav'><div class='sticky-sidebar'><h3>CPU Rasterizer From Scratch</h3><nav><ul><li><a href='cpu-rasterizer-from-scratch-part1.html'>Part 1</a></li><li><a href='cpu-rasterizer-from-scratch-part2.html'>- Part 2</a></li></ul></nav></div></aside>
+
+    <main>
+        <article id="content-top">
+	<header class="article-header">
+		<h1>Part 2</h1>
+	</header>
+		<section id='zig'><h2 class='sticky-header'>Zig
+</h2>
+
+<p>In the last blog, I said that I wanted to switch from C to Zig after I have done enough C projects. After all the hard exams were over, I thought I get started with Zig with Advent of Code. At first, Zig was a bit confusing to use and took some productivity time trying to find a way to do type conversion, handling error, or even opening file. It took some days to get comfortable with Zig. And then when I got comfortable, it was a very smooth coding experience, way way better than writing C. I mean, there wasn't a time I was like 'The fook is going on !?', there were always some directions to solution.</p>
+
+<p>I couldn't wait until the time was 'right' to re-write the code in Zig. So, I did it. No regrets. Zig rasterizer has a super simple (feature-wise) obj parser and textures. But it doesn't have shadow mapping as C does, which would be easy to implement, but that is not the objective at this moment. The objective is to make it fast enough for it to be interactive.</p>
+</section><section id='optimizations'><h2 class='sticky-header'>Optimizations
+</h2>
+
+<p>I wanted to do some optimizations, and see how fast I can make it run before I <strong>have</strong> to touch SIMD or Multi-threading. Turn out, I could do a lot, lot more than I imagined. So lets get to it.</p>
+</section><section id='render-target-clearing'><h3 class='sticky-header'>Render-target clearing
+</h3>
+
+<p>I have two render-target, a depth buffer and a frame buffer. If I was going to make it interactive, then I would have to clear it after each frame. The code was like this, for depth-buffer:</p>
+
+<pre><code class="language-zig">pub fn putPixel(self: *RenderTargetR32, x: u32, y: u32, value: f32) void {
+    self.buffer[y * self.width + x] = value;
+}
+
+pub fn clearColor(self: *RenderTargetR32, value: f32) void {
+     var y: u32 = 0;
+     var x: u32 = 0;
+     while (y < self.height) : (y += 1) {
+         while (x < self.width) : (x += 1) {
+             self.putPixel(x, y, value);
+         }
+         x = 0;
+     }
+}
+</code></pre>
+
+<p>and for frame-buffer:</p>
+
+<pre><code class="language-zig">pub fn putPixel(self: *RenderTargetRGBA32, x: u32, y: u32, color: Color) void {
+    self.buffer[y * 4 * self.width + (x * 4 + 0)] = color.r;
+    self.buffer[y * 4 * self.width + (x * 4 + 1)] = color.g;
+    self.buffer[y * 4 * self.width + (x * 4 + 2)] = color.b;
+    self.buffer[y * 4 * self.width + (x * 4 + 3)] = 1.0;
+}
+
+pub fn clearColor(self: *RenderTargetRGBA32, color: Color) void {
+     var y: u32 = 0;
+     var x: u32 = 0;
+     while (y < self.height) : (y += 1) {
+         while (x < self.width) : (x += 1) {
+             self.putPixel(x, y, color);
+         }
+         x = 0;
+     }
+ }
+</code></pre>
+
+<p>First thing I notice after profiling using xcode's instruments, is that this two function had high cache misses. Improving the depth-buffer was pretty simple, instead of doing all the traversal, all I did was memset the buffer. I don't remember well how much of improvement I got from this, but I think it was prolly something like</p>
+
+<pre><code class="language-md">Depth-buffer size: 1280 x 720
+
+before: ~4 ms
+after: ~1 ms (or at-least small enough so profiler doesn't notice in new measurement)
+</code></pre>
+
+<p>As for frame-buffer, I couldn't do memset same way, other wise I wouldn't be able to clear it with color....or could I? It took <code>~19ms</code> to do this, which I honestly couldn't afford. And so, I memset the frame buffer too, which would give me a background with shade of grey. I think, that's ok.</p>
+
+<pre><code class="language-md">Frame-buffer size: 1280 x 720
+
+before: ~19 ms
+after: ~2.5 ms
+</code></pre>
+
+<p>Which is pretty good, considering clearing buffer would itself would stop me from getting 60fps.</p>
+
+<blockquote><p><strong>Note to reader</strong>: I changed both of buffers type from f32 to f16 during above optimization and forgot to note how much it improved. So, 7.6x improvement for frame buffer include the type change.</p>
+</blockquote>
+
+<blockquote><p><strong>Note to myself</strong>: Don't forget to properly measure the performance and note it somewhere.</p>
+</blockquote>
+</section><section id='random-things'><h3 class='sticky-header'>Random things
+</h3>
+
+<p>Then I tried to optimize the code by doing random things, such making some calculation compile-time, only calculating things only one time, not making extra allocations on stack, etc. Which I haven't measure, but at best it shave off 1 or 2 ms.</p>
+</section><section id='back-face-culling'><h3 class='sticky-header'>Back-face culling
+</h3>
+
+<p>I forgot to add this basic optimization since I first started with this project. Better late than never I guess.</p>
+
+<p>Here I just took one vertice's normal and calculated dot product with camera direction, instead of using face normal. Calculating face's normal would cost me, and also that using vertice's normal looked good enough to me, so I didn't bother myself with it.</p>
+
+<pre><code class="language-md">Spot model
+Before back-face culling: 38.34 ms
+After back-face culling: 21.885 ms
+</code></pre>
+</section><section id='aabb'><h3 class='sticky-header'>AABB
+</h3>
+
+<p>If you have read my previous blog post, you already know that I implemented AABB, but did I do it properly here? Can you spot the blunder?</p>
+
+<pre><code class="language-zig">var x: u32 = aabb.min_x;
+var y: u32 = aabb.min_y;
+while (y <= aabb.max_y) : (y += 1) {
+    while (x <= aabb.max_x) : (x += 1) {
+        const xf32 = @intToFloat(f32, x);
+        const yf32 = @intToFloat(f32, y);
+        var w0: f32 = edgeFunction(a, b, xf32, yf32);
+        var w1: f32 = edgeFunction(b, c, xf32, yf32);
+        var w2: f32 = edgeFunction(c, a, xf32, yf32);
+        if (windingOrderTest(winding_order, w0, w1, w2)) {
+            w0 /= area;
+            w1 /= area;
+            w2 /= area;
+            var z = 1.0 / (w1 * a.z + w2 * b.z + w0 * c.z);
+            if (z < depth_buffer.getPixel(x, y)) {
+                depth_buffer.putPixel(x, y, @floatCast(f16, z));
+                var u = w1 * a_uv.x + w2 * b_uv.x + w0 * c_uv.x;
+                var v = w1 * a_uv.y + w2 * b_uv.y + w0 * c_uv.y;
+                u *= z;
+                v *= z;
+                u = clamp(f32, 0.0, 1.0, u);
+                v = clamp(f32, 0.0, 1.0, v);
+                // WHYYYYYYYYYYYYYY!!!!!!
+                v = 1.0 - v;
+                var tex_u = @floatToInt(u32, u * tex_width_f32);
+                var tex_v = @floatToInt(u32, v * tex_height_f32);
+                var albedo = texture.pixels.rgb24[tex_v * texture.width + tex_u].toColorf32();
+                albedo.r *= pong;
+                albedo.g *= pong;
+                albedo.b *= pong;
+                frame_buffer.putPixel(x, y, Color{ .r = @floatCast(f16, albedo.r), .g = @floatCast(f16, albedo.g), .b = @floatCast(f16, albedo.b) });
+            }
+        }
+    }
+    x = 0;
+ }
+</code></pre>
+
+<blockquote class='note'><p style='font-family: "Georgia", serif; font-weight: bold;'>Hint!</p><hr><p>Yeah, I want range loop in zig badly</p>
+</blockquote>
+
+<pre><code class="language-md">Spot model
+Before: 21.885 ms
+After: 4.7 ms
+</code></pre>
+
+<p>This is pretty POG (at-least to me), considering I said this in last blog.</p>
+
+<blockquote><p>We will have to implement multi-threading, SIMD  and other techniques such as frustum culling, to at least make it interactive for a close-up low-poly scene.</p>
+</blockquote>
+</section><section id='optimizing-the-edge-function'><h3 class='sticky-header'>Optimizing the edge function
+</h3>
+
+<p>Improved the edge function from using 2 mults and 5 subs to simple addition as described in Scratchapixel's <a href="https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-practical-implementation">Optimizin the edge function</a>. 
+We get about <code>1.2x</code> improvement (spot model). But for high poly model (dragon model), we only see about <code>1.08x</code> improvement. So I don't know if it really an improvement, and if it worth having extra complexity. The problem here is that I can't properly measure improvement because I haven't written a proper <code>.obj</code> parser, and so I can't load scenes and can only do a single object test.</p>
+
+<blockquote><p><strong>Note to myself</strong>: Write proper .obj parser and load scene instead of single object. And also implement costy shading features to properly measure optimizations.</p>
+</blockquote>
+</section><section id='mesh-properties-data-structure'><h3 class='sticky-header'>Mesh properties data structure
+</h3>
+
+<p>The original parser I wrote followed data structure of how .obj file defined the properties:</p>
+
+<pre><code class="language-zig">pub const Mesh = struct {
+    vertices: std.ArrayList(Vec3),
+    indices: std.ArrayList(u32),
+
+    uvs: std.ArrayList(Vec2),
+    uv_indices: std.ArrayList(u32),
+
+    normals: std.ArrayList(Vec3),
+    normal_indices: std.ArrayList(u32),
+    // ....
+};
+</code></pre>
+
+<p>So you would have to access like:</p>
+
+<pre><code class="language-zig">var i: u32 = 0;
+while (i < mesh.indices.items.len) : (i += 3) {
+    var index1 = mesh.indices.items[i];
+    var index2 = mesh.indices.items[i + 1];
+    var index3 = mesh.indices.items[i + 2];
+
+    var vert1 = mesh.vertices.items[index1];
+    var vert2 = mesh.vertices.items[index2];
+    var vert3 = mesh.vertices.items[index3];
+
+    var uv_1 = mesh.uvs.items[mesh.uv_indices.items[i + 0]];
+    var uv_2 = mesh.uvs.items[mesh.uv_indices.items[i + 1]];
+    var uv_3 = mesh.uvs.items[mesh.uv_indices.items[i + 2]];
+}
+</code></pre>
+
+<p>Which is pretty slow, as you have to do 2 array access to get to the element. Also because cache misses will be lot more likely. So I turned it into SOA (Structure-of-Array) just after parsing is done.</p>
+
+<pre><code class="language-zig">pub const Mesh = struct {
+    vertices: std.ArrayList(Vec3),
+    uvs: std.ArrayList(Vec2),
+    normals: std.ArrayList(Vec3),
+    indices: usize,
+    // ....
+};
+</code></pre>
+
+<pre><code class="language-zig">var i: u32 = 0;
+while (i < mesh.indices) : (i += 3) {
+    var vert1 = mesh.vertices.items[i];
+    var vert2 = mesh.vertices.items[i + 1];
+    var vert3 = mesh.vertices.items[i + 2];
+
+    var uv_1 = mesh.uvs.items[i];
+    var uv_2 = mesh.uvs.items[i + 1];
+    var uv_3 = mesh.uvs.items[i + 2];
+}
+</code></pre>
+
+<p>I even tried doing AOS and AOSOA, result is:</p>
+
+<pre><code class="language-md">Dragon model (high-poly):
+- before: 64.965 ms
+- after (SOA): 56.9 ms
+- after (AOS): 59.585 ms
+- after (AOSOA): 58.17 ms
+
+Spot model (low-poly):
+- before: 7.515 ms
+- after (SOA): 7.32 ms
+- after (AOS): -
+- after (AOSOA): 7.5 ms
+</code></pre>
+</section><section id='results'><h3 class='sticky-header'>Results
+</h3>
+
+<div class="image-collage"><div class="image-wrapper"><video src="../assets/cg_from_scratch_part2_dragon.mov" controls muted></video></div><div class="image-wrapper"><video src="../assets/cg_from_scratch_part2_spot.mov" controls muted></video></div></div>
+</section><section id='until-next-time'><h3 class='sticky-header'>Until next time
+</h3>
+
+<p>To make sure that I don't make same mistake of not keeping note of improvements and also of not using proper test scene to measure improvement. I will create a proper <code>.obj</code> parser, and load some relatively heavy scene with materials. And also try to use PBR technique to make it even more heavy to render. And maybe even add shadows back.</p>
+
+<p>After I am done with that, we will do even more optimizations :)</p>
+
+<p>The code is here: <a href="https://github.com/BlackGoku36/ZigCPURasterizer">https://github.com/BlackGoku36/ZigCPURasterizer</a></p>
+
+<p><blockquote><p>Hopefully, this has been interesting read for you :)</p></p>
+</section>
+
+		<footer class='pagination'><nav><a href='cpu-rasterizer-from-scratch-part1.html'>< Prev</a><a href='../articles.html'>Articles</a></nav></footer>
+
+</article>
+
+    </main>
+
+    <aside aria-label='Table of Contents' class='toc-nav'><div class='sticky-sidebar'><h3>Table Of Content</h3><nav><ul><li><a href='#content-top'>Back To Top</a></li><li><a href='#zig'>Zig
+</a></li><li><a href='#optimizations'>Optimizations
+</a></li><li><a href='#render-target-clearing'>Render-target clearing
+</a></li><li><a href='#random-things'>Random things
+</a></li><li><a href='#back-face-culling'>Back-face culling
+</a></li><li><a href='#aabb'>AABB
+</a></li><li><a href='#optimizing-the-edge-function'>Optimizing the edge function
+</a></li><li><a href='#mesh-properties-data-structure'>Mesh properties data structure
+</a></li><li><a href='#results'>Results
+</a></li><li><a href='#until-next-time'>Until next time
+</a></li></ul></nav></div></aside>
+
+    </div>
+
+    <footer class="contacts">
+    	<address><a href="https://x.com/UrjasviS">Twitter</a><a href="https://github.com/BlackGoku36">Github</a><a href="mailto:urjasvisuthar@gmail.com">Email</a><a href="https://www.linkedin.com/in/urjasvi-suthar-bg36">LinkedIn</a></address>
+        <p>&copy; 2026 Urjasvi Suthar</p>
+    </footer>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/prism-3.js"></script>
+</body>
+</html>

@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urjasvi Suthar | Excavation I</title>
+    <link rel="stylesheet" href="../css/prism-3.css">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="name">
+            <h1>Urjasvi Suthar</h1>
+            <button id="theme-toggle">
+<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M337.5-463Q311-498 289-537q-5 14-6.5 28.5T281-480q0 83 58 141t141 58q14 0 28.5-2t28.5-6q-39-22-74-48.5T396-396q-32-32-58.5-67ZM567-364.5Q630-328 702-308q-40 51-98 79.5T481-200q-117 0-198.5-81.5T201-480q0-65 28.5-123t79.5-98q20 72 56.5 135T453-452q51 51 114 87.5ZM743-380q-20-5-39.5-11T665-405q8-18 11.5-36.5T680-480q0-83-58.5-141.5T480-680q-20 0-38.5 3.5T405-665q-8-19-13.5-38T381-742q24-9 49-13.5t51-4.5q117 0 198.5 81.5T761-480q0 26-4.5 51T743-380ZM440-840v-120h80v120h-80Zm0 840v-120h80V0h-80Zm323-706-57-57 85-84 57 56-85 85ZM169-113l-57-56 85-85 57 57-85 84Zm671-327v-80h120v80H840ZM0-440v-80h120v80H0Zm791 328-85-85 57-57 84 85-56 57ZM197-706l-84-85 56-57 85 85-57 57Zm199 310Z"/></svg>
+</button>
+        </div>
+
+        <nav>
+            <a href="../index.html">Home</a><a href="../projects.html">Projects</a><a href="../articles.html">Articles</a>
+        </nav>
+    </header>
+
+    <div class="layout-grid">
+
+    <aside aria-label='Series Navigation' class='series-nav'><div class='sticky-sidebar'><h3>WebAssembly Series</h3><nav><ul><li><a href='webassembly-introduction.html'>Introduction</a></li><li><a href='webassembly-wasm-vs-javascript.html'>WASM vs JS</a></li><li><a href='webassembly-excavation-part1.html'>- Excavation I</a></li></ul></nav></div></aside>
+
+    <main>
+        <article id="content-top">
+	<header class="article-header">
+		<h1>Excavation I</h1>
+	</header>
+		<section id=''><p>Let's dive into the world of WebAssembly and try to understand how it actually works. Unlike typical 
+tutorials, we aren't going to learn "how to use it", but "how does it work" in technical detail.
+If you want to know how to use it, there are plenty of tutorials out there teaching you that, also it
+is pretty trivial.</p>
+
+<p>WebAssembly (WASM) is a stack-based binary instruction format designed to be portable, size-/load-time-efficient 
+and performant, all of which are criteria for good web technology—no one likes it when it slow, bloated 
+and runs only on one browser.</p>
+
+<blockquote class='note'><p style='font-family: "Georgia", serif; font-weight: bold;'>Note</p><hr><p>Basic understanding of stack machine is assumed.</p>
+</blockquote>
+
+<p>Instead of jumping straight to reading the WASM binary file's 0s and 1s, we will start by writing
+code in it's text format <code>WAT</code> (<code>.wat</code> extension). We will go from basic <code>.wat</code> code that does nothing
+to exploring different features of WASM. After that, we will dive deeper and check out the 
+underlying structure and then figure out the 0s and 1s of the binary file.</p>
+
+<p>We will use WebAssembly Binary ToolKit (WABT) suite of tools to compile, validate and de-sugar <code>.wasm</code>
+and <code>.wat</code> files.</p>
+</section><section id='writing-your-first-wasm-code'><h2 class='sticky-header'>Writing Your First WASM Code
+</h2>
+
+<p>The most basic acceptable WASM is an empty module. That is:</p>
+
+<pre><code class="language-wasm">;; file1.wat
+(module)
+</code></pre>
+
+<pre><code class="language-bash"> # wat2wasm is a compiler as part of WABT. It doesn't do any optimization, which
+ # is good since optimization might prevent 1:1 mapping of our .wat and .wasm files.
+wat2wasm file1.wat -o file1.wasm
+</code></pre>
+
+<p>This should compile and output a binary called <code>file1.wasm</code>. Before opening it up in browser (it is meaningless at moment),
+we can open it up in <code>ImHex</code> editor. You will see:</p>
+
+<pre><code class="language-txt">00 61 73 6D 01 00 00 00
+</code></pre>
+
+<p>Here <code>0x0061736D</code> represents the magic number '\0asm' and <code>0x01000000</code> represent version number 1 in little endian format.
+WASM uses little endian as it bytes representation for multi-bytes integers in the binary format.</p>
+
+<p>Now let's do simple arithmetic, say we take one integer, multiply it by 10 and return it.</p>
+
+<pre><code class="language-wasm">;; file2.wat
+(module
+    (func $mult (export "mult") (param $a i32) (result i32)
+        ;; Stack: []
+        local.get $a ;; Push parameter onto stack.             Stack: [$a]
+        i32.const 10 ;; Push constant 10 onto stack.           Stack: [$a, 10]
+        i32.mul      ;; Pop two values, multiply, push result. Stack: [10 * $a]
+        return       ;; Return top of stack.                   Stack: [10 * $a]
+    )
+)
+</code></pre>
+
+<p>We declare and define function with name <code>mult</code>, <code>a</code> parameter of type <code>i32</code> and the return type also being <code>i32</code>. Another thing,
+it export the function with name "mult" so we can use it from JS. </p>
+
+<blockquote class='note'><p style='font-family: "Georgia", serif; font-weight: bold;'>Note</p><hr><p><code>$a</code> and <code>$mult</code> are called identifiers, there are purely for documenting purpose. But WASM, after compiling
+ discard the $identifiers and uses integer indices instead.</p>
+</blockquote>
+
+<p>Now, compilation should be successfull, but lets run it. We will create a simple html with JS script 
+that load and instantiate WASM module.</p>
+
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot;&gt;
+    &lt;title&gt;Simple mult example&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;script&gt;
+      WebAssembly.instantiateStreaming(fetch(&quot;file2.wasm&quot;), {}).then((result) =&gt; {
+        console.log(result.instance.exports.mult(5));
+      });
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+<p>Here, we fetch the Wasm file, instantiate it, and get the resulting module and run our <code>mult</code> 
+function. You should see <code>50</code> in your browser console. </p>
+
+<p>That's WASM 101, but let explore a bit more before diving deeper.</p>
+
+<p>Just exporting function isn't any fun, let's see what happens when we want to run WASM like a 
+standalone program.</p>
+
+<pre><code class="language-wasm">;; file3.wat
+(module
+    (start $main)
+    (func $main
+        ;; Stack: []
+        i32.const 4 ;; Push constant 4 onto stack.                    Stack: [4]
+        call $mult  ;; Call $mult and pass top of stack as parameter. Stack: [40]
+        drop ;; Drop value at top of stack.                           Stack: []
+    )
+    (func $mult (param $a i32) (result i32)
+        local.get $a ;; Push parameter onto stack.             Stack: [4]
+        i32.const 10 ;; Push constant 10 onto stack.           Stack: [4, 10]
+        i32.mul      ;; Pop two values, multiply, push result. Stack: [40] (4 * 10)
+        return       ;; Return top of stack.
+    )
+)
+</code></pre>
+
+<p>To define a function that is entry point, or a function that starts on module being initiated (like 
+compiled languages), we define it as <code>(start &lt;function id&gt;)</code>. Here, we define our new main function 
+as the start function. The mult function is called with <code>call $mult</code>, also the <code>$mult</code> function 
+doesn't get exported now. If you noticed we also added <code>drop</code> instruction after the call. The <code>drop</code> 
+instruction drops a single value (top-most) from the stack, this is because an <a href="https://webassembly.github.io/spec/core/valid/modules.html#start-function">start function shouldn't 
+return anything</a>.</p>
+
+<p>You can run this, but nothing will show up on browser console. So, now we will import a print 
+function to write to console.</p>
+
+<p>We will introduce import object, that imports the functions we want and pass it to our 
+<code>instantiateStreaming</code> function. Like this:</p>
+
+<pre><code class="language-js">const importObject = {
+    std: { print: (arg) => console.log(arg) },
+};
+WebAssembly.instantiateStreaming(fetch("file3.wasm"), importObject);
+</code></pre>
+
+<p>WASM has two level namespace, that is <code>std</code> is module and <code>print</code> is function. Since <code>console.log</code> 
+accept any type, we can just pass whatever type we want to, whether it be <code>i32/f32/etc</code>, but only 
+one argument. You can add more if you want. In our <code>.wat</code> file</p>
+
+<pre><code class="language-wasm">;; file3.wat
+(module
+    (import "std" "print" (func $print (param $a i32)))
+    (start $main)
+    (func $main
+        ;; Stack: []
+        i32.const 4 ;; Push constant 4 onto stack.                     Stack: [4]
+        call $mult ;; Call $mult and pass top of stack as parameter.   Stack: [40]
+        call $print ;; Call $print and pass top of stack as parameter. Stack: []
+    )
+    (func $mult (param $a i32) (result i32)
+        local.get $a ;; Push parameter onto stack.             Stack: [4]
+        i32.const 10 ;; Push constant 10 onto stack.           Stack: [4, 10]
+        i32.mul      ;; Pop two values, multiply, push result. Stack: [40] (4 * 10)
+        return       ;; Return top of stack.
+    )
+)
+</code></pre>
+
+<p>We import func with the same 2-level namespace, but here we will have to define the type of parameter. 
+Though, if you want to import same function but for different type, you can duplicate the line, but 
+have different function identifier and parameter type. If you run it now, you should see <code>40</code> appears 
+in your browser console!</p>
+</section><section id='sweetener-nt-it'><h2 class='sticky-header'>Sweetener'nt it
+</h2>
+
+<p>Its feels like we have written enough <code>.wat</code> code. Its now a time to grab a shovel and start digging. Run:</p>
+
+<pre><code class="language-bash"> # wat-desugar reformat the .wat files without any syntatic sugars, 
+ # revealing abstracted structures.
+wat-desugar file3.wat
+</code></pre>
+
+<p>It will output:</p>
+
+<pre><code class="language-wasm">(module
+  (start $main)
+  (import "std" "print" (func $print (param i32)))
+  (func $main
+    i32.const 4
+    call $mult
+    call $print)
+  (func $mult (param $a i32) (result i32)
+    local.get $a
+    i32.const 10
+    i32.mul
+    return)
+  (type (;0;) (func (param i32)))
+  (type (;1;) (func))
+  (type (;2;) (func (param i32) (result i32))))
+</code></pre>
+
+<p>You will immediately notice that everything is same, except for the last three lines. That is how 
+WASM defines function signatures.</p>
+
+<pre><code class="language-wasm">(type (;0;) (func (param i32)))
+</code></pre>
+
+<p>This define function signature with its index defined as <code>0</code> and has single parameter of type <code>i32</code>.
+These indices share same indices space across imports + local functions, imports indices comes first 
+and then local function indices. That is, if you check from top-to-botton of all functions declared, 
+you can see our import function declaration comes first—with same signature.</p>
+
+<p>Now let see our <code>file2.wat</code> desugared.</p>
+
+<pre><code class="language-wasm">(module
+  (func $mult (param $a i32) (result i32)
+    local.get $a
+    i32.const 10
+    i32.mul
+    return)
+  (export "mult" (func $mult))
+  (type (;0;) (func (param i32) (result i32))))
+</code></pre>
+
+<p>The <code>type</code> is as expected, but there another line. Here, the export function <code>(export "mult")</code> that we defined
+is un-inlined. It also links to the function <code>$mult</code>.</p>
+</section><section id='understanding-wasm-s-internal-structure'><h2 class='sticky-header'>Understanding WASM's Internal Structure
+</h2>
+
+<p>Now lets dig even deeper and see the actual structure of <code>.wasm</code> file as binary. To see that, run:</p>
+
+<pre><code class="language-bash"> # wasm-validate as name implies validates the Wasm file by checking if 
+ # the binary structure follows rules laid-out in specification or not. 
+ # Since we are using output from wat2wasm, it is already validated there. 
+ # What we want is the WASM structure its creates while validating.
+wasm-validate file3.wasm -v
+</code></pre>
+
+<p>In stdout, you will get something like this:</p>
+
+<pre><code class="language-txt">BeginModule(version: 1)
+  BeginTypeSection(13)
+  ...
+  EndTypeSection
+  BeginImportSection(13)
+  ...
+  EndImportSection
+  BeginFunctionSection(3)
+  ...
+  EndFunctionSection
+  BeginStartSection(1)
+  ...
+  EndStartSection
+  BeginCodeSection(19)
+  ...
+  EndCodeSection
+EndModule
+</code></pre>
+
+<p>This is how WASM code is structured in its binary format. The module is splitted into multiple 
+sections, including custom section that totals up to 12. Each of these sections are optional and 
+must be in following order <a href="https://webassembly.github.io/spec/core/binary/modules.html#binary-module">(execption is custom section, which can be anywhere)</a>.</p>
+
+<table>
+<thead>
+<tr>
+  <th style="text-align:center;">Section ID</th>
+  <th style="text-align:left;">Section Name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td style="text-align:center;">0</td>
+  <td style="text-align:left;">Custom Section</td>
+</tr>
+<tr>
+  <td style="text-align:center;">1</td>
+  <td style="text-align:left;">Type Section</td>
+</tr>
+<tr>
+  <td style="text-align:center;">2</td>
+  <td style="text-align:left;">Import Section</td>
+</tr>
+<tr>
+  <td style="text-align:center;">3</td>
+  <td style="text-align:left;">Function Section</td>
+</tr>
+<tr>
+  <td style="text-align:center;">4</td>
+  <td style="text-align:left;">Table Section</td>
+</tr>
+<tr>
+  <td style="text-align:center;">5</td>
+  <td style="text-align:left;">Memory Section</td>
+</tr>
+<tr>
+  <td style="text-align:center;">6</td>
+  <td style="text-align:left;">Global Section</td>
+</tr>
+<tr>
+  <td style="text-align:center;">7</td>
+  <td style="text-align:left;">Export Section</td>
+</tr>
+<tr>
+  <td style="text-align:center;">8</td>
+  <td style="text-align:left;">Start Section</td>
+</tr>
+<tr>
+  <td style="text-align:center;">9</td>
+  <td style="text-align:left;">Element Section</td>
+</tr>
+<tr>
+  <td style="text-align:center;">10</td>
+  <td style="text-align:left;">Code Section</td>
+</tr>
+<tr>
+  <td style="text-align:center;">11</td>
+  <td style="text-align:left;">Data Section</td>
+</tr>
+<tr>
+  <td style="text-align:center;">12</td>
+  <td style="text-align:left;">Data Count Section</td>
+</tr>
+</tbody>
+</table>
+
+<p><a href="https://webassembly.github.io/spec/core/binary/modules.html">(You can find the table here.)</a></p>
+
+<p>Let's go through the sections that our file produces.</p>
+</section><section id='structure-module'><h3 class='sticky-header'>Structure: Module
+</h3>
+
+<pre><code class="language-txt">BeginModule(version: 1)
+...
+EndModule
+</code></pre>
+
+<p>Obviously, these is the over-arching module, the outer most structure. It shows that the version of 
+our Wasm file is 1.</p>
+</section><section id='structure-type-section'><h3 class='sticky-header'>Structure: Type Section
+</h3>
+
+<pre><code class="language-txt">BeginTypeSection(13)
+  OnTypeCount(3)
+  OnFuncType(index: 0, params: [], results: [])
+  OnFuncType(index: 1, params: [i32], results: [i32])
+  OnFuncType(index: 2, params: [i32], results: [])
+EndTypeSection
+</code></pre>
+
+<p>This is the type section which defines function signature of all the functions defined/used in our 
+code. There are three of them, <code>main</code>, <code>mult</code> and <code>std.print</code>. First (with index 0, <code>main</code>) take no 
+parameter and returns nothing. Second (with index 1, <code>mult</code>) takes i32 and produce i32. Third (with 
+index 2 <code>std.print</code>) takes i32 but produce nothing. The indices just point to their own position in 
+the section. </p>
+
+<p>Functions defined in <code>Import/Export Section</code> and <code>Function Section</code> must point to this signature.</p>
+</section><section id='structure-import-section'><h3 class='sticky-header'>Structure: Import Section
+</h3>
+
+<pre><code class="language-txt">BeginImportSection(13)
+  OnImportCount(1)
+  OnImport(index: 0, kind: func, module: "std", field: "print")
+  OnImportFunc(import_index: 0, func_index: 0, sig_index: 2)
+EndImportSection
+</code></pre>
+
+<p>This section defines all the things that is imported—functions, memories, tables, etc. There is only 
+one import. Its index is 0, type is function and <code>module</code> and <code>field</code>corrsponds to the two-level 
+namespace. The <code>ImportFunc</code> defines additional details, <code>import_index</code> is the same index as the 
+import, <code>func_index</code> is the index that <code>call</code> instructions will refer to, and <code>sig_index</code> is the index 
+into signature defined in the <code>Type Section</code>. Like we had seen earlier, this <code>func_index</code> is in unified 
+index space where imports comes first and then local function.</p>
+</section><section id='structure-function-section'><h3 class='sticky-header'>Structure: Function Section
+</h3>
+
+<pre><code class="language-txt">BeginFunctionSection(3)
+  OnFunctionCount(2)
+  OnFunction(index: 1, sig_index: 0)
+  OnFunction(index: 2, sig_index: 1)
+EndFunctionSection
+</code></pre>
+
+<p>This section defines all the local functions. There are two of them, <code>main</code> and <code>mult</code>. The <code>index</code> 
+is the index the that <code>call</code> instruction will refer to, and <code>sig_index</code> that will index into the 
+signature defined in <code>Type Section</code>.</p>
+</section><section id='structure-start-section'><h3 class='sticky-header'>Structure: Start Section
+</h3>
+
+<pre><code class="language-txt">BeginStartSection(1)
+  OnStartFunction(1)
+EndStartSection
+</code></pre>
+
+<p>This section defines which function is the start function that runs on intialization. It's index is 1 (<code>main</code>).</p>
+</section><section id='structure-code-section'><h3 class='sticky-header'>Structure: Code Section
+</h3>
+
+<pre><code class="language-txt">BeginCodeSection(19)
+    OnFunctionBodyCount(2)
+    BeginFunctionBody(1, size:8)
+        OnLocalDeclCount(0)
+        EndLocalDecls
+        OnI32ConstExpr(4 (0x4))
+        OnCallExpr(func_index: 2)
+        OnCallExpr(func_index: 0)
+        OnEndExpr
+    EndFunctionBody(1)
+    BeginFunctionBody(2, size:8)
+        OnLocalDeclCount(0)
+        EndLocalDecls
+        OnLocalGetExpr(index: 0)
+        OnI32ConstExpr(10 (0xa))
+        OnBinaryExpr("i32.mul" (108))
+        OnReturnExpr
+        OnEndExpr
+    EndFunctionBody(2)
+  EndCodeSection
+</code></pre>
+
+<p>This section contains the actual instructions that WASM will run. It contains <code>Function Body</code>, which 
+contains local variable (<code>Local Declarations</code>) and instructions (<code>Exprs</code>). There are two function 
+bodies, with index pointing to <code>Function Section</code>. Each of them have no local variables, and 
+contains multiple instructions. Note how those <code>OnCallExpr</code> points to elements in<code>Function Section</code> 
+and <code>Import Section</code>.</p>
+</section><section id='decoding-the-binary-format'><h2 class='sticky-header'>Decoding The Binary Format
+</h2>
+
+<p>Depending on who you are, you may care about the actual bits and bytes of the format. If you care
+about integrating WASM in your system, whether they may be application like browser, as plugin
+system or even embedded program, than knowing the binary format is very important. Aside from that, 
+it is very interesting to see how things are encoded.</p>
+
+<p>The typical binary structure of a sections is in format of: <code>Id Size Content</code>. Where <code>Id</code> is 
+one-byte <code>Section ID</code> from table we saw earlier, <code>Size</code> is size of <code>Content</code> in bytes, and <code>Content</code> 
+is whatever actual content the section holds. Another structure we see a lot of times is <code>Vec</code>, 
+which is list/array of elements. <code>Vec</code> structure is as <code>Len Elem1 Elem2..ElemLen</code>, <code>Len</code> is number 
+of elements present in the array.</p>
+
+<p>For example:</p>
+
+<pre><code class="language-txt">0x1 0x5 0x1 0x60 0x1 0x7F 0x0
+</code></pre>
+
+<ul>
+<li>Byte 1 (0x1): Means Type Section.</li>
+<li>Byte 2 (0x5): Section contains 5 bytes.</li>
+</ul>
+
+<p>Since Type Section contains array of function signatures <a href="https://webassembly.github.io/spec/core/binary/modules.html#type-section">(source)</a>:</p>
+
+<ul>
+<li>Byte 3 (0x1): There is only one function signature.</li>
+<li>Byte 4 (0x60): It is Function Type code <a href="https://webassembly.github.io/spec/core/binary/types.html#binary-functype">(source)</a>.</li>
+</ul>
+
+<p>After Function Type, comes <code>Vec</code> of parameters and then <code>Vec</code> of results.</p>
+
+<ul>
+<li>Byte 5 (0x1): There is only one parameter.</li>
+<li>Byte 6 (0x7F): The parameter is of type <code>i32</code> <a href="https://webassembly.github.io/spec/core/binary/types.html#number-types">(source)</a>.</li>
+<li>Byte 7 (0x0): There is no result type—function doesn't return.</li>
+</ul>
+
+<p>Now lets analyse the <code>file2.wasm</code> binary. I will be using <code>ImHex</code> to inspect hex dump of WASM binary, but you can
+use <code>xxd</code>, <code>hexdump</code> or whatever you like.</p>
+</section><section id='binary-header'><h3 class='sticky-header'>Binary: Header
+</h3>
+
+<pre><code class="language-txt">  Magic No.   Version
+|-----------|-----------|
+ 00 61 73 6D 01 00 00 00
+</code></pre>
+
+<p>First we see the 8 bytes: Magic Number and Version—as seen before. After that we have:</p>
+</section><section id='binary-type-section'><h3 class='sticky-header'>Binary: Type Section
+</h3>
+
+<pre><code class="language-txt">01 06 01 60 01 7F 01 7F
+</code></pre>
+
+<ul>
+<li>Byte 1 (0x01): Type Section.</li>
+<li>Byte 2 (0x06): Section contains 6 bytes.</li>
+<li>Byte 3 (0x01): There is only one function signature.</li>
+<li>Byte 4 (0x60): Function Type Code.</li>
+<li>Byte 5 (0x01): There is one parameter.</li>
+<li>Byte 6 (0x7F): The parameter is of type <code>i32</code>.</li>
+<li>Byte 7 (0x01): There is one result.</li>
+<li>Byte 8 (0x7F): The result is of type <code>i32</code>.</li>
+</ul>
+
+<p>Read more about <a href="https://webassembly.github.io/spec/core/binary/modules.html#type-section">Type Section</a>.</p>
+</section><section id='binary-function-section'><h3 class='sticky-header'>Binary: Function Section
+</h3>
+
+<pre><code class="language-txt">03 02 01 00
+</code></pre>
+
+<ul>
+<li>Byte 1 (0x03): Function Section.</li>
+<li>Byte 2 (0x02): This section contains 2 bytes.</li>
+<li>Byte 3 (0x01): There is only 1 function.</li>
+<li>Byte 4 (0x00): Points to signature index 0.</li>
+</ul>
+
+<p>Read more about <a href="https://webassembly.github.io/spec/core/binary/modules.html#function-section">Function Section</a>.</p>
+</section><section id='binary-export-section'><h3 class='sticky-header'>Binary: Export Section
+</h3>
+
+<pre><code class="language-txt">07 08 01 04 6D 75 6C 74 00 00
+</code></pre>
+
+<ul>
+<li>Byte 1 (0x07): Export Section.</li>
+<li>Byte 2 (0x08): Section contains 8 bytes.</li>
+<li>Byte 3 (0x01): There is only one export.</li>
+<li>Byte 4 (0x04): Export name string has 4 chars (<code>mult</code>).</li>
+<li>Byte 5-8 (6D 75 6C 74): <code>mult</code> string as ascii.</li>
+<li>Byte 9 (0x00): The export is of type function.</li>
+<li>Byte 10 (0x00): The function index.</li>
+</ul>
+
+<p>Read more about <a href="https://webassembly.github.io/spec/core/binary/modules.html#export-section">Export Section</a>.</p>
+</section><section id='binary-code-section'><h3 class='sticky-header'>Binary: Code Section
+</h3>
+
+<pre><code class="language-txt">0A 0A 01 08 00 20 00 41 0A 6C 0F 0B
+</code></pre>
+
+<ul>
+<li>Byte 1 (0x0A): Code Section.</li>
+<li>Byte 2 (0x0A): Section have 10 bytes.</li>
+<li>Byte 3 (0x01): Section contains 1 function body.</li>
+<li>Byte 4 (0x08): Function body has 8 bytes.</li>
+<li>Byte 5 (0x00): There is 0 local declarations.</li>
+<li>Byte 6 (0x20): <code>local.get</code>.</li>
+<li>Byte 7 (0x00): <code>0</code>th parameter index.</li>
+<li>Byte 8 (0x41): <code>i32.const</code>.</li>
+<li>Byte 9 (0x0A): <code>10</code> (i32 literal).</li>
+<li>Byte 10 (0x6C): <code>i32.mul</code>.</li>
+<li>Byte 11 (0x0F): <code>return</code>.</li>
+<li>Byte 12 (0x0B): <code>end</code>.</li>
+</ul>
+
+<p>Read more about <a href="https://webassembly.github.io/spec/core/binary/modules.html#code-section">Code Section</a> 
+and <a href="https://webassembly.github.io/spec/core/binary/instructions.html#binary-expr">OpCodes</a>.</p>
+
+<blockquote class='note'><p style='font-family: "Georgia", serif; font-weight: bold;'>Note</p><hr><p>All integers are encoded as <a href="https://en.wikipedia.org/wiki/LEB128">Leb128</a> variable-length 
+ integer encoding. <a href="https://webassembly.github.io/spec/core/binary/values.html#binary-int">Read more</a></p>
+</blockquote>
+</section><section id='conclusion'><h2 class='sticky-header'>Conclusion
+</h2>
+
+<p>We learned how to write basic WASM code, how to compile it, find out the abstracted structures and read 0s and 1s
+of the binary file. This way you should be able to generate a simple <code>.wasm</code> file, either by hand or by compiler. And be
+able to better understand where the problem might lies when any bugs shows up.</p>
+
+<blockquote><p>One important thing I noticed while writing this document is that there isn't any simple step-by-step
+ evaluation engine—or atleast in the visible public. This would prevent anyone who want to learn
+ from being able to see how program flow from one instruction to another and how the stack (among 
+ other thing) changes to fully internalize WASM behaviour. WABT is excellent suite of tools which
+ is very easy to download and run. An runtime (sharing the same philosophy) that opens up the inner 
+ machinery would be amazing.</p>
+</blockquote>
+</section><section id='further-reading-homework'><h2 class='sticky-header'>Further Reading / Homework
+</h2>
+
+<p>What you can do is write more <code>.wat</code> code, compile it and figure out its output in same way. You can always
+refer to <a href="https://webassembly.github.io/spec/">WebAssembly Specification</a> if you see something you don't know.</p>
+</section><section id='what-s-next'><h2 class='sticky-header'>What's Next
+</h2>
+
+<p>In next tutorial, we will check out control instruction and how it's works.</p>
+</section>
+
+		<footer class='pagination'><nav><a href='webassembly-wasm-vs-javascript.html'>< Prev</a><a href='../articles.html'>Articles</a></nav></footer>
+
+</article>
+
+    </main>
+
+    <aside aria-label='Table of Contents' class='toc-nav'><div class='sticky-sidebar'><h3>Table Of Content</h3><nav><ul><li><a href='#content-top'>Back To Top</a></li><li><a href='#writing-your-first-wasm-code'>Writing Your First WASM Code
+</a></li><li><a href='#sweetener-nt-it'>Sweetener'nt it
+</a></li><li><a href='#understanding-wasm-s-internal-structure'>Understanding WASM's Internal Structure
+</a></li><li><a href='#structure-module'>Structure: Module
+</a></li><li><a href='#structure-type-section'>Structure: Type Section
+</a></li><li><a href='#structure-import-section'>Structure: Import Section
+</a></li><li><a href='#structure-function-section'>Structure: Function Section
+</a></li><li><a href='#structure-start-section'>Structure: Start Section
+</a></li><li><a href='#structure-code-section'>Structure: Code Section
+</a></li><li><a href='#decoding-the-binary-format'>Decoding The Binary Format
+</a></li><li><a href='#binary-header'>Binary: Header
+</a></li><li><a href='#binary-type-section'>Binary: Type Section
+</a></li><li><a href='#binary-function-section'>Binary: Function Section
+</a></li><li><a href='#binary-export-section'>Binary: Export Section
+</a></li><li><a href='#binary-code-section'>Binary: Code Section
+</a></li><li><a href='#conclusion'>Conclusion
+</a></li><li><a href='#further-reading-homework'>Further Reading / Homework
+</a></li><li><a href='#what-s-next'>What's Next
+</a></li></ul></nav></div></aside>
+
+    </div>
+
+    <footer class="contacts">
+    	<address><a href="https://x.com/UrjasviS">Twitter</a><a href="https://github.com/BlackGoku36">Github</a><a href="mailto:urjasvisuthar@gmail.com">Email</a><a href="https://www.linkedin.com/in/urjasvi-suthar-bg36">LinkedIn</a></address>
+        <p>&copy; 2026 Urjasvi Suthar</p>
+    </footer>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/prism-3.js"></script>
+</body>
+</html>

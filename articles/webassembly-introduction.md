@@ -1,0 +1,58 @@
+In short, WebAssembly is a binary instruction format for a stack-based VM. To understand it better, we will talk a little bit more about what a `Binary Instruction Format` means and what a `Stack-based VM` means.
+
+It was designed for improving performance of web applications and allowing them to do computationally expensive tasks that were previously not possible with JS. It is a portable format, which can work in environments outside of browsers such as desktop/mobile apps, client/server applications, IoTs, and even embedded devices.
+
+Before WASM, [asm.js](https://en.wikipedia.org/wiki/Asm.js) existed that compiled statically-typed manual memory management languages such as C to optimized versions of JS. It used a source-to-source compiler that targeted a specific subset of JS. This subset consisted of static types and virtually no [garbage collection](https://en.wikipedia.org/wiki/Garbage_collection_%28computer_science%29), which improved performance by magnitudes. It also optimized size by employing techniques like [dead-code elimination](https://en.wikipedia.org/wiki/Dead-code_elimination), and also removed unnecessary whitespace, newlines, etc. and shortened long identifiers to few-character identifiers.
+
+> # [What is Garbage Collection]($block.collapsible(false))
+> Basically garbage means allocated memory that isn't used anymore, and collection means de-allocating this not-used-anymore memory.
+> In manual memory management languages, you allocate and deallocate memory by yourself. But in Garbage Collected languages, the 
+> language does it for you. How GC does it and when depends upon the implemented technique, you wouldn't want GC to do its work at inconvenient 
+> times in inconvenient ways.
+
+## Binary Instruction Format
+
+Just like humans use languages to understand and communicate with each other, computers need something similar. Human languages consist of atomic symbols such as alphabets, just as machine language consists of 0s and 1s. These symbols randomly strung together, by themselves, don't mean anything. Just like `kdjhsk` doesn't mean anything, random 0s and 1s `01010101` don't mean anything. Language defines rules for these symbols and strings to give meaning, like `hello` means greeting in the `English` language. Zeros and Ones can be given meaning with a language designed particularly for a machine.
+
+For the sake of understanding, we can design our own machine language. Let's say, our language is based on bit strings of length 8-bit (called a byte), which is analogous to a word in the English language (although a word can be of arbitrary length). To understand a sentence, we say that a string of bytes starts with a verb and then, if any, we have a noun. For example, a byte string `"10100000 00100101"`, `10100000` is a verb and `00100101` is a noun. Similarly, `"10010011 00100100 00010000 10000001"` is verb, noun, verb and noun respectively. Then we can go and add rules for what a verb and what a noun is. For example,
+
+| Byte     | Meaning |
+|----------|---------|
+| 00______ | Walk    |
+| 01______ | Run     |
+| 10______ | Sprint  |
+| 11______ | Stop    |
+
+Then we can define the next 2-bits for vocal cords, and then the next-next 2-bits and so on and on. For nouns, it could mean human names somehow mapped to a byte. This will effectively give us a way to command any (actually up to 2^8 = 255 here) humans in our machine language.
+
+There already exist machine languages for computers, these languages are sometimes called `Instruction Set Architecture (ISA)`, such as `x86_64`, `RISC-V`, `ARM64`, etc. WebAssembly is another one of these languages, but for a made-up hardware.
+
+## Stack-based VM
+
+Virtual Machine (VM) as the name implies, is a machine that is virtual and not physical hardware. VMs are software that emulate a specific machine, typically they emulate ISAs. These work by decoding the binary files (executables), then they try to make sense of the structure, and then execute appropriate similar instructions that are available natively.
+
+Stack-based means that it uses a stack as storage for immediate temporary values instead of registers like ISAs. For example, you want to execute the following line of code:
+
+```c
+printf(1 + 2);
+```
+
+The order of instructions and their execution look something like this:
+
+| Instruction | Operation   | Stack  |
+|-------------|-------------|--------|
+| 1           | push 1      | 1      |
+| 2           | push 2      | 1, 2   |
+| 3           | add         | 3      |
+| 4           | call printf | null   |
+
+## Binary Instruction Format for Stack-based VM
+
+So, WebAssembly is just a portable specification developed for a machine that uses a stack, whose main goal is to be used on the Web. But since it is just a format, it can be used anywhere as long as the VM is compliant and provides an interface for the environment (just like how ISAs interface with OS environments through function calls and other stuff).
+
+## Use Cases
+
+- **Computationally expensive tasks**: Applications that have to do a lot of numerical computations such as graphics, cryptography, simulations, etc.
+- **Security**: WASM is much more secure than JS by reducing the attack surface area. WASM is much more obscure than JS, thus making it harder for attackers to just look at code. It provides better memory safety and prevents common memory bugs like buffer overflow. The entire code is sandboxed, thus isolating it from the rest of the system, making it harder for attackers to access sensitive data and perform illegal operations.
+- **Tons of Libraries**: Since any system programming language can be compiled to WASM, a vast amount of libraries written in C and C++ is suddenly available on the web.
+- **Outside of web**: Since WASM is a VM, it is completely possible to use it for mobile/desktop apps, it can also be run on servers or even IoT devices. Basically you can write once and run anywhere.

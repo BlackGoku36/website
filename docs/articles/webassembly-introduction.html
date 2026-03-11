@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urjasvi Suthar | Introduction</title>
+    <link rel="stylesheet" href="../css/prism-3.css">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="name">
+            <h1>Urjasvi Suthar</h1>
+            <button id="theme-toggle">
+<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M337.5-463Q311-498 289-537q-5 14-6.5 28.5T281-480q0 83 58 141t141 58q14 0 28.5-2t28.5-6q-39-22-74-48.5T396-396q-32-32-58.5-67ZM567-364.5Q630-328 702-308q-40 51-98 79.5T481-200q-117 0-198.5-81.5T201-480q0-65 28.5-123t79.5-98q20 72 56.5 135T453-452q51 51 114 87.5ZM743-380q-20-5-39.5-11T665-405q8-18 11.5-36.5T680-480q0-83-58.5-141.5T480-680q-20 0-38.5 3.5T405-665q-8-19-13.5-38T381-742q24-9 49-13.5t51-4.5q117 0 198.5 81.5T761-480q0 26-4.5 51T743-380ZM440-840v-120h80v120h-80Zm0 840v-120h80V0h-80Zm323-706-57-57 85-84 57 56-85 85ZM169-113l-57-56 85-85 57 57-85 84Zm671-327v-80h120v80H840ZM0-440v-80h120v80H0Zm791 328-85-85 57-57 84 85-56 57ZM197-706l-84-85 56-57 85 85-57 57Zm199 310Z"/></svg>
+</button>
+        </div>
+
+        <nav>
+            <a href="../index.html">Home</a><a href="../projects.html">Projects</a><a href="../articles.html">Articles</a>
+        </nav>
+    </header>
+
+    <div class="layout-grid">
+
+    <aside aria-label='Series Navigation' class='series-nav'><div class='sticky-sidebar'><h3>WebAssembly Series</h3><nav><ul><li><a href='webassembly-introduction.html'>- Introduction</a></li><li><a href='webassembly-wasm-vs-javascript.html'>WASM vs JS</a></li><li><a href='webassembly-excavation-part1.html'>Excavation I</a></li></ul></nav></div></aside>
+
+    <main>
+        <article id="content-top">
+	<header class="article-header">
+		<h1>Introduction</h1>
+	</header>
+		<section id=''><p>In short, WebAssembly is a binary instruction format for a stack-based VM. To understand it better, we will talk a little bit more about what a <code>Binary Instruction Format</code> means and what a <code>Stack-based VM</code> means.</p>
+
+<p>It was designed for improving performance of web applications and allowing them to do computationally expensive tasks that were previously not possible with JS. It is a portable format, which can work in environments outside of browsers such as desktop/mobile apps, client/server applications, IoTs, and even embedded devices.</p>
+
+<p>Before WASM, <a href="https://en.wikipedia.org/wiki/Asm.js">asm.js</a> existed that compiled statically-typed manual memory management languages such as C to optimized versions of JS. It used a source-to-source compiler that targeted a specific subset of JS. This subset consisted of static types and virtually no <a href="https://en.wikipedia.org/wiki/Garbage_collection_%28computer_science%29">garbage collection</a>, which improved performance by magnitudes. It also optimized size by employing techniques like <a href="https://en.wikipedia.org/wiki/Dead-code_elimination">dead-code elimination</a>, and also removed unnecessary whitespace, newlines, etc. and shortened long identifiers to few-character identifiers.</p>
+
+<blockquote><p># <a href="$block.collapsible(false)">What is Garbage Collection</a>
+ Basically garbage means allocated memory that isn't used anymore, and collection means de-allocating this not-used-anymore memory.
+ In manual memory management languages, you allocate and deallocate memory by yourself. But in Garbage Collected languages, the 
+ language does it for you. How GC does it and when depends upon the implemented technique, you wouldn't want GC to do its work at inconvenient 
+ times in inconvenient ways.</p>
+</blockquote>
+</section><section id='binary-instruction-format'><h2 class='sticky-header'>Binary Instruction Format
+</h2>
+
+<p>Just like humans use languages to understand and communicate with each other, computers need something similar. Human languages consist of atomic symbols such as alphabets, just as machine language consists of 0s and 1s. These symbols randomly strung together, by themselves, don't mean anything. Just like <code>kdjhsk</code> doesn't mean anything, random 0s and 1s <code>01010101</code> don't mean anything. Language defines rules for these symbols and strings to give meaning, like <code>hello</code> means greeting in the <code>English</code> language. Zeros and Ones can be given meaning with a language designed particularly for a machine.</p>
+
+<p>For the sake of understanding, we can design our own machine language. Let's say, our language is based on bit strings of length 8-bit (called a byte), which is analogous to a word in the English language (although a word can be of arbitrary length). To understand a sentence, we say that a string of bytes starts with a verb and then, if any, we have a noun. For example, a byte string <code>"10100000 00100101"</code>, <code>10100000</code> is a verb and <code>00100101</code> is a noun. Similarly, <code>"10010011 00100100 00010000 10000001"</code> is verb, noun, verb and noun respectively. Then we can go and add rules for what a verb and what a noun is. For example,</p>
+
+<table>
+<thead>
+<tr>
+  <th>Byte</th>
+  <th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>00______</td>
+  <td>Walk</td>
+</tr>
+<tr>
+  <td>01______</td>
+  <td>Run</td>
+</tr>
+<tr>
+  <td>10______</td>
+  <td>Sprint</td>
+</tr>
+<tr>
+  <td>11______</td>
+  <td>Stop</td>
+</tr>
+</tbody>
+</table>
+
+<p>Then we can define the next 2-bits for vocal cords, and then the next-next 2-bits and so on and on. For nouns, it could mean human names somehow mapped to a byte. This will effectively give us a way to command any (actually up to 2^8 = 255 here) humans in our machine language.</p>
+
+<p>There already exist machine languages for computers, these languages are sometimes called <code>Instruction Set Architecture (ISA)</code>, such as <code>x86_64</code>, <code>RISC-V</code>, <code>ARM64</code>, etc. WebAssembly is another one of these languages, but for a made-up hardware.</p>
+</section><section id='stack-based-vm'><h2 class='sticky-header'>Stack-based VM
+</h2>
+
+<p>Virtual Machine (VM) as the name implies, is a machine that is virtual and not physical hardware. VMs are software that emulate a specific machine, typically they emulate ISAs. These work by decoding the binary files (executables), then they try to make sense of the structure, and then execute appropriate similar instructions that are available natively.</p>
+
+<p>Stack-based means that it uses a stack as storage for immediate temporary values instead of registers like ISAs. For example, you want to execute the following line of code:</p>
+
+<pre><code class="language-c">printf(1 + 2);
+</code></pre>
+
+<p>The order of instructions and their execution look something like this:</p>
+
+<table>
+<thead>
+<tr>
+  <th>Instruction</th>
+  <th>Operation</th>
+  <th>Stack</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>1</td>
+  <td>push 1</td>
+  <td>1</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td>push 2</td>
+  <td>1, 2</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td>add</td>
+  <td>3</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td>call printf</td>
+  <td>null</td>
+</tr>
+</tbody>
+</table>
+</section><section id='binary-instruction-format-for-stack-based-vm'><h2 class='sticky-header'>Binary Instruction Format for Stack-based VM
+</h2>
+
+<p>So, WebAssembly is just a portable specification developed for a machine that uses a stack, whose main goal is to be used on the Web. But since it is just a format, it can be used anywhere as long as the VM is compliant and provides an interface for the environment (just like how ISAs interface with OS environments through function calls and other stuff).</p>
+</section><section id='use-cases'><h2 class='sticky-header'>Use Cases
+</h2>
+
+<ul>
+<li><strong>Computationally expensive tasks</strong>: Applications that have to do a lot of numerical computations such as graphics, cryptography, simulations, etc.</li>
+<li><strong>Security</strong>: WASM is much more secure than JS by reducing the attack surface area. WASM is much more obscure than JS, thus making it harder for attackers to just look at code. It provides better memory safety and prevents common memory bugs like buffer overflow. The entire code is sandboxed, thus isolating it from the rest of the system, making it harder for attackers to access sensitive data and perform illegal operations.</li>
+<li><strong>Tons of Libraries</strong>: Since any system programming language can be compiled to WASM, a vast amount of libraries written in C and C++ is suddenly available on the web.</li>
+<li><strong>Outside of web</strong>: Since WASM is a VM, it is completely possible to use it for mobile/desktop apps, it can also be run on servers or even IoT devices. Basically you can write once and run anywhere.</li>
+</ul>
+</section>
+
+		<footer class='pagination'><nav><a href='../articles.html'>Articles</a><a href='webassembly-wasm-vs-javascript.html'>Next ></a></nav></footer>
+
+</article>
+
+    </main>
+
+    <aside aria-label='Table of Contents' class='toc-nav'><div class='sticky-sidebar'><h3>Table Of Content</h3><nav><ul><li><a href='#content-top'>Back To Top</a></li><li><a href='#binary-instruction-format'>Binary Instruction Format
+</a></li><li><a href='#stack-based-vm'>Stack-based VM
+</a></li><li><a href='#binary-instruction-format-for-stack-based-vm'>Binary Instruction Format for Stack-based VM
+</a></li><li><a href='#use-cases'>Use Cases
+</a></li></ul></nav></div></aside>
+
+    </div>
+
+    <footer class="contacts">
+    	<address><a href="https://x.com/UrjasviS">Twitter</a><a href="https://github.com/BlackGoku36">Github</a><a href="mailto:urjasvisuthar@gmail.com">Email</a><a href="https://www.linkedin.com/in/urjasvi-suthar-bg36">LinkedIn</a></address>
+        <p>&copy; 2026 Urjasvi Suthar</p>
+    </footer>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/prism-3.js"></script>
+</body>
+</html>
