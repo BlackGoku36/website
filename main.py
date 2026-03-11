@@ -6,7 +6,17 @@ from ssg_main import *
 
 s = Site()
 s.name = "Urjasvi Suthar"
-s.analytics_html = "some html code"
+s.analytics_html = """
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-SDGTEQVJBG"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-SDGTEQVJBG');
+</script>
+"""
 s.copyright = "&copy; 2026 Urjasvi Suthar"
 s.addContact(ContactType.Twitter, "UrjasviS")
 s.addContact(ContactType.Github, "BlackGoku36")
