@@ -119,11 +119,11 @@ Measurements taken on an M3 Pro (Single Threaded, 1024 x 576):
 
 | Scene                          | Time (ms) |
 |:-------------------------------|----------:|
-| Lumberyard's Bistro (Exterior) | 14,103 ms |
-| Lumberyard's Bistro (Interior) |  2,649 ms |
-| Junk Shop                      |  2,493 ms |
-| Tavern (cam 1)                 |    630 ms |
-| Tavern (cam 2)                 |    732 ms |
+| Lumberyard's Bistro (Exterior) |  2,126 ms |
+| Lumberyard's Bistro (Interior) |  2,554 ms |
+| Junk Shop                      |  2,458 ms |
+| Tavern (cam 1)                 |    588 ms |
+| Tavern (cam 2)                 |    676 ms |
 | Knight                         |     49 ms |
 
 Scene Statistics:
