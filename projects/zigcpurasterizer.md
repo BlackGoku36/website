@@ -77,7 +77,7 @@ The renderer follows a simple color pipeline:
 - **Right**: HDR `.avif` (converted from `.hdr` with ffmpeg). 
 
 > If you can't see image on right, then maybe your browser doesn't support `.avif`. If colors are either off/muted or same
-> as image on left, then maybe your monitor displays in SDR range.
+> as image on left, then maybe your monitor doesn't displays in HDR range.
 
 ## GLTF
 
