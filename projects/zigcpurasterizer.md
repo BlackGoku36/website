@@ -14,7 +14,7 @@ The project is 2-pass forward renderer. The first is an opaque pass, where all o
 
 ![Junkshop Scene (Opaque Pass)](../assets/junkshop_opaque.png)
 ![junkshop Scene (Translucent Pass)](../assets/junkshop_translucent.png)
-![junkshop Scene (Final Composition)](../assets/junkshop_final.png)
+![junkshop Scene (Final Composition)](../assets/0_junkshop.png)
 
 ## PBR Shading
 
@@ -36,7 +36,7 @@ Multiple lighting of different types is implemented:
 - Area Light: LTC Area Light from [Real-Time Polygonal-Light Shading with Linearly Transformed Cosines](https://eheitzresearch.wordpress.com/415-2/).
 
 ![Directional Light](../assets/sunlight.png)
-![Point Light](../assets/pointlight.png)
+![Point Light](../assets/0_bistro.png)
 ![Area Light](../assets/arealight.png)
 
 ## Transmission Shading
@@ -52,7 +52,7 @@ Both pass are composited before being displayed in the window.
 ![Bistro Scene (Opaque Pass)](../assets/bistro_opaque.png)
 ![Bistro Scene (Translucent Pass - Objects)](../assets/bistro_transcluent_obj.png)
 ![Bistro Scene (Translucent Pass)](../assets/bistro_transcluent.png)
-![Bistro Scene (Final Composition)](../assets/bistro_final.png)
+![Bistro Scene (Final Composition)](../assets/4_bistro.png)
 
 1. Opaque pass.
 2. Translucent pass without sampling `Opaque` pass.
