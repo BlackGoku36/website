@@ -4,11 +4,11 @@ Since the previous article, I have implemented a lot of graphics techniques and 
 to load `.glTF` file for more complicated scenes (with triangle clipping), to LTC area light, PBR shading and transmissive materials. It allowed me to render cool scenes
 made by cool artists like `The Junk Shop`:
 
-![Junkshop Scene](../assets/junkshop_final.png)
+![Junkshop Scene](../assets/0_junkshop.png)
 
 and modern sample assets such as `Lumberyard Bistro`:
 
-![Bistro Scene](../assets/pointlight.png)
+![Bistro Scene](../assets/0_bistro.png)
 
 ensuring HDR screens are not wasted:
 
@@ -396,7 +396,7 @@ Frustrum culling was the first step in improving the performance of a renderer, 
 
 What surprising was the close fight between Sphere and AABB culling, with Sphere winning by a metre. Perhaps a more complicated and larger scene might change that? Also, since it follows glTF file and structure format, all the meshes are divided by materials, which might not be most efficient way to part meshes into most equal volumes. Lastly, there no hierarchical structure so, some desired milliseconds might be left out.
 
-## Screenshots
+## Screenshots Of All Scenes
 
 ![Tavern](../assets/0_junkshop.png)
 ![Tavern](../assets/1_junkshop.png)
