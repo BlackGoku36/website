@@ -62,7 +62,7 @@ articles_page.description = """
 cpu_rasterizer = ArticleGroup("CPU Rasterizer From Scratch")
 cpu_rasterizer.add_article(ArticlePage("Part 1", "articles/cpu-rasterizer-from-scratch-part1.md"))
 cpu_rasterizer.add_article(ArticlePage("Part 2", "articles/cpu-rasterizer-from-scratch-part2.md"))
-cpu_rasterizer.add_article(ArticlePage("Part 3", "articles/cpu-rasterizer-from-scratch-part3.md"))
+cpu_rasterizer.add_article(ArticlePage("Part 3 - Frustum Culling", "articles/cpu-rasterizer-from-scratch-part3.md"))
 
 # Necessary? we can just have project page?
 undefinedlang = ArticleGroup("UndefinedLanguage")

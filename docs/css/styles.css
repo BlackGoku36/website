@@ -1,4 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');
+/*@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');*/
+
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url('JetBrainsMono-VariableFont_wght.ttf');
+}
+
+@font-face {
+  font-family: Inter;
+  src: url('Inter-VariableFont_opsz_wght.ttf');
+}
 
 :root {
  --bg: #eee;
@@ -375,6 +385,10 @@ tr:nth-child(even) {
 	background-color: var(--border);
 }
 
+section:not(:has(nav)) li + li {
+  margin-top: 10px;
+}
+
 blockquote {
 	border: 2px dashed var(--border);
 	padding: 0 20px;
@@ -495,6 +509,14 @@ p > code, li > code {
 	border: 2px solid var(--border);
 	border-radius: 4px;
 	padding: 4px;
+}
+
+code[class*=language-],pre[class*=language-]{
+	font-family: "JetBrains Mono", monospace;
+  font-optical-sizing: auto;
+  /*font-weight: <weight>;*/
+  font-style: normal;
+  font-variant-ligatures: normal;
 }
 
 .marquee {

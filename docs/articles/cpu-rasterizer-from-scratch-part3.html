@@ -14,7 +14,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Urjasvi Suthar | Part 3</title>
+    <title>Urjasvi Suthar | Part 3 - Frustum Culling</title>
     <link rel="stylesheet" href="../css/prism-3.css">
     <link rel="stylesheet" href="../css/styles.css">
 </head>
@@ -34,12 +34,12 @@
 
     <div class="layout-grid">
 
-    <aside aria-label='Series Navigation' class='series-nav'><div class='sticky-sidebar'><h3>CPU Rasterizer From Scratch</h3><nav><ul><li><a href='cpu-rasterizer-from-scratch-part1.html'>Part 1</a></li><li><a href='cpu-rasterizer-from-scratch-part2.html'>Part 2</a></li><li><a href='cpu-rasterizer-from-scratch-part3.html'>- Part 3</a></li></ul></nav></div></aside>
+    <aside aria-label='Series Navigation' class='series-nav'><div class='sticky-sidebar'><h3>CPU Rasterizer From Scratch</h3><nav><ul><li><a href='cpu-rasterizer-from-scratch-part1.html'>Part 1</a></li><li><a href='cpu-rasterizer-from-scratch-part2.html'>Part 2</a></li><li><a href='cpu-rasterizer-from-scratch-part3.html'>- Part 3 - Frustum Culling</a></li></ul></nav></div></aside>
 
     <main>
         <article id="content-top">
 	<header class="article-header">
-		<h1>Part 3</h1>
+		<h1>Part 3 - Frustum Culling</h1>
 	</header>
 		<section id='since-before'><h2 class='sticky-header'>Since before
 </h2>
@@ -67,81 +67,84 @@ made by cool artists like <code>The Junk Shop</code>:</p>
 <li>There wasn't anything worth documenting that wouldn't be found by simple google search or something that people haven't already wrote 1000s of words about it.</li>
 </ul>
 
-<p>As I am satisfied with the visual quality I have achieved for a CPU software rasterizer, I wanted to chase performance, hoping to getting in range of real-time (~50ms) rendering for midly complex scene. This is what majority of post is about.</p>
-</section><section id='frustrum-culling'><h2 class='sticky-header'>Frustrum Culling
+<p>As I am satisfied with the visual quality I have achieved for a CPU software rasterizer, I want to chase performance, hoping to getting in range of real-time (~50ms) rendering for midly complex scene. This is what blogpost are going to be about from now on.</p>
+</section><section id='frustum-culling'><h2 class='sticky-header'>Frustum Culling
 </h2>
 
-<p>Clip-space is defined by multiplying vertex/point with View-Project (VP) matrix.</p>
+<p>One of the biggest performance issue in computer graphics is doing computation on things that isn't going to show up on screen. We want to reduce them as much as possible. These computations in this case is triangle clipping. Right now, rasterizer do clipping test on <em>every single</em> triangle, including all the triangles of the mesh that is either completely inside/outside the view frustum. With frustum culling, we immediately reject mesh outside the frustum, and only perform clipping test on meshes lying on planes.</p>
 
-<p>In clip-space, its volume is defined by,</p>
+<p>Lets first look at the theory behind frustrum culling, then we will look at pseudocode and finally benchmark of implementation.</p>
 
-<pre><code class="language-md"> -Wc <= Xc/Yc/Zc <= Wc, where Pc = (Xc, Yc, Zc, Wc) is a point in clip-space
+<p>In a standard graphics pipeline, clip-space is defined by the View-Projection (VP) matrix. A point <code>Pc</code> is inside the visible volume if:</p>
+
+<pre><code class="language-md"> -w_c <= x_c/y_c/z_c <= w_c,
+    where Pc = (x_c, y_c, z_c, w_c) is a point in clip-space
 </code></pre>
 
-<p>and its 6 planes are,</p>
+<p>This volume is bounded by six planes. To cull objects efficiently, we need to extract these planes directly from our transformation matrix. These planes are:</p>
 
-<pre><code class="language-md">-> -Wc <= Xc  = Left Plane
-->  Xc <= Wc  = Right Plane
--> -Wc <= Yc  = Top Plane
-->  Yc <= Wc  = Bottom Plane
--> -Wc <= Zc  = Near Plane
-->  Zc <= Wc  = Far Plane
+<pre><code class="language-md">-> -w_c <= x_c  = Left Plane
+->  x_c <= w_c  = Right Plane
+-> -w_c <= y_c  = Top Plane
+->  y_c <= w_c  = Bottom Plane
+-> -w_c <= z_c  = Near Plane
+->  z_c <= w_c  = Far Plane
 </code></pre>
 
-<p>if we re-arrange them, we get</p>
+<p>If we re-arrange them, we get:</p>
 
-<pre><code class="language-md">-> Wc + Xc >= 0  = Left Plane
--> Wc - Xc >= 0  = Right Plane
--> Wc + Yc >= 0  = Top Plane              (EQ-0)
--> Wc - Yc >= 0  = Bottom Plane
--> Wc + Zc >= 0  = Near Plane
--> Wc - Zc >= 0  = Far Plane
+<pre><code class="language-md">-> w_c + x_c >= 0  = Left Plane
+-> w_c - x_c >= 0  = Right Plane
+-> w_c + y_c >= 0  = Top Plane              (EQ-0)
+-> w_c - y_c >= 0  = Bottom Plane
+-> w_c + z_c >= 0  = Near Plane
+-> w_c - z_c >= 0  = Far Plane
 </code></pre>
 
-<p>Now, consider matrix multiplication of <code>VP</code> matrix and a world space point <code>P</code> to get clip-space point <code>Pc</code>,</p>
+<p>Now, consider matrix multiplication of <code>VP</code> matrix and a world space point <code>P</code> to get clip-space point <code>Pc</code>:</p>
 
-<pre><code class="language-md">-> Pc = VP * P
+<pre><code class="language-md">-> Pc = VP • P
 </code></pre>
 
-<p>Let represent VP matrix by rows,</p>
+<p>Let represent VP matrix by rows:</p>
 
 <pre><code class="language-md">->
-     | Row0 |   | X |
-Pc = | Row1 | * | Y | , where RowN represent each row of VP matrix
-     | Row2 |   | Z |
-     | Row3 |   | W |
+     | Row0 |
+Pc = | Row1 | • P , where RowN represent each row of VP matrix
+     | Row2 |
+     | Row3 |
 
 </code></pre>
 
-<p>results in,</p>
+<p>Results in:</p>
 
-<pre><code class="language-md">-> Xc = Row0 * P
--> Yc = Row1 * P            (EQ-1)
--> Zc = Row2 * P
--> Wc = Row3 * P
+<pre><code class="language-md">-> x_c = Row0 • P
+-> y_c = Row1 • P            (EQ-1)
+-> z_c = Row2 • P
+-> w_c = Row3 • P
 </code></pre>
 
-<p>Substituting <code>EQ-1</code> in <code>EQ-0</code>, we get</p>
+<p>Substituting <code>EQ-1</code> in <code>EQ-0</code>, we get:</p>
 
-<pre><code class="language-md">-> (Row3 * P) + (Row0 * P) >= 0  = Left Plane
--> (Row3 * P) - (Row0 * P) >= 0  = Right Plane
--> (Row3 * P) + (Row1 * P) >= 0  = Top Plane
--> (Row3 * P) - (Row1 * P) >= 0  = Bottom Plane
--> (Row3 * P) + (Row2 * P) >= 0  = Near Plane
--> (Row3 * P) - (Row2 * P) >= 0  = Far Plane
+<pre><code class="language-md">-> (Row3 • P) + (Row0 • P) >= 0  = Left Plane
+-> (Row3 • P) - (Row0 • P) >= 0  = Right Plane
+-> (Row3 • P) + (Row1 • P) >= 0  = Top Plane
+-> (Row3 • P) - (Row1 • P) >= 0  = Bottom Plane
+-> (Row3 • P) + (Row2 • P) >= 0  = Near Plane
+-> (Row3 • P) - (Row2 • P) >= 0  = Far Plane
 </code></pre>
 
-<p>re-arranging them, we get</p>
+<p>Re-arranging them:</p>
 
-<pre><code class="language-md">-> (Row3 + Row0) * P >= 0  = Left Plane
--> (Row3 - Row0) * P >= 0  = Right Plane
--> (Row3 + Row1) * P >= 0  = Top Plane
--> (Row3 - Row1) * P >= 0  = Bottom Plane
--> (Row3 + Row2) * P >= 0  = Near Plane
--> (Row3 - Row2) * P >= 0  = Far Plane
+<pre><code class="language-md">-> (Row3 + Row0) • P >= 0  = Left Plane
+-> (Row3 - Row0) • P >= 0  = Right Plane
+-> (Row3 + Row1) • P >= 0  = Top Plane
+-> (Row3 - Row1) • P >= 0  = Bottom Plane
+-> (Row3 + Row2) • P >= 0  = Near Plane
+-> (Row3 - Row2) • P >= 0  = Far Plane
 </code></pre>
 
-<p>Looks similar? It vector equation for each plane. Consider <code>Left Plane</code>, let expand <code>Row3</code> and <code>Row0</code></p>
+<p>Looks similar? It vector equation for each plane. Consider <code>Left Plane</code>, let expand <code>Row3</code> and <code>Row0</code>:</p>
 
 <pre><code class="language-txt">-> Row0 = (VP_00, VP_01, VP_02, VP_03)
 -> Row3 = (VP_30, VP_31, VP_32, VP_33)
@@ -149,7 +152,7 @@ Pc = | Row1 | * | Y | , where RowN represent each row of VP matrix
 -> Row3 + Row0 = (VP_30 + VP_00, VP_31 + VP_01, VP_32 + VP_02, VP_33 + VP_03)
 </code></pre>
 
-<p>Lets rename each components</p>
+<p>Lets rename each components:</p>
 
 <pre><code class="language-txt">-> A = VP_30 + VP_00
 -> B = VP_31 + VP_01
@@ -157,12 +160,14 @@ Pc = | Row1 | * | Y | , where RowN represent each row of VP matrix
 -> D = VP_33 + VP_03
 </code></pre>
 
-<p>If we do dot product of <code>(Row3 + Row0) = (A, B, C, D)</code> with <code>P = (X, Y, Z, 1)</code> we get</p>
+<p>If we do dot product of <code>(Row3 + Row0) = (A, B, C, D)</code> with <code>P = (x, y, z, 1)</code> we get:</p>
 
-<pre><code class="language-txt">AX + BY + CZ + D >= 0
+<pre><code class="language-txt">Ax + By + Cz + D >= 0
 </code></pre>
 
-<p>Which is general equation of plane. A, B, C would represent normal and D the distance. Pseudocode would look like:</p>
+<p>Which is general equation of plane. A, B, C would represent normal and D the distance from origin.</p>
+
+<p>Pseudocode would look like:</p>
 
 <pre><code class="language-py">def extractPlanes(view_projection_matrix):
     row0 = view_projection_matrix.row0()
@@ -176,20 +181,20 @@ Pc = | Row1 | * | Y | , where RowN represent each row of VP matrix
         Vec4.add(row3, row1), # Top Plane
         Vec4.sub(row3, row1), # Bottom Plane
         Vec4.add(row3, row2), # Near Plane
-        Vec4.sub(row3, row2) # Far Plane
+        Vec4.sub(row3, row2)  # Far Plane
     ]
 
     for plane in planes:
-        len = sqrt(plane.x * plane.x + plane.y * plane.y + plane.z * plane.z)
-        plane.x /= len
-        plane.y /= len
-        plane.z /= len
-        plane.w /= len
+        mag = sqrt(plane.x * plane.x + plane.y * plane.y + plane.z * plane.z)
+        plane.x /= mag
+        plane.y /= mag
+        plane.z /= mag
+        plane.w /= mag
 
     return planes
 </code></pre>
-
-<hr />
+</section><section id='bounding-structures'><h3 class='sticky-header'>Bounding Structures
+</h3>
 
 <p>There are multiple kind of bounding structures:</p>
 
@@ -200,21 +205,21 @@ Pc = | Row1 | * | Y | , where RowN represent each row of VP matrix
 <li>Convex Hull</li>
 </ul>
 
-<p>Among the fastest is Bounding Sphere and then AABB, but among the best bounded is OBB and Convex Hull. Each of them have their own use. For rasterizer need, we want to be able to quickly discard the object if it entirely out of frustrum, and since our rasterizer has software triangle clipping (which can be a bottleneck) we want to do it only on objects intersecting the plane. So, we want the culling test to be fast with structure compact enough to minimize triangle clipping. Bounding Sphere and AABB are probably good enough for it.</p>
+<p>Among the fastest is Bounding Sphere and then AABB, but among the best bounded is OBB and Convex Hull. Each of them have their own use. For rasterizer need, we want to be able to quickly discard the object if it entirely out of frustum, and since our rasterizer has software triangle clipping (which can be a bottleneck) we want to do clipping only on objects intersecting the plane. So, we want the culling test to be fast with structure compact enough to minimize triangle clipping. Bounding Sphere and AABB are probably good enough for it.</p>
 
-<p>To test sphere and plane intersection, we plug sphere's center into plane equation (sphere represented with center <code>S</code> and radius <code>R</code>):</p>
+<p>To test sphere and plane intersection, we plug sphere's center into plane equation (sphere represented with center <code>S = (Sx, Sy, Sz)</code> and radius <code>R</code>):</p>
 
 <pre><code class="language-txt">ASx + BSy + CSz + D = 0
 </code></pre>
 
 <p>For each plane, we get three cases:</p>
 
-<pre><code class="language-txt">->       ASx + BSy + CSz + D > R   , completely inside the frustrum
-->       ASx + BSy + CSz + D < -R  , completely outside the frustrum
--> R <= ASx + BSy + CSz + D <= -R  , intersecting the frustrum
+<pre><code class="language-txt">->       ASx + BSy + CSz + D  >  R  , completely inside the plane
+->       ASx + BSy + CSz + D  < -R  , completely outside the plane
+->  R <= ASx + BSy + CSz + D <= -R  , intersecting the plane
 </code></pre>
 
-<p>psuedocode would look something like:</p>
+<p>Psuedocode would look something like:</p>
 
 <pre><code class="language-py">
 def testBoundingSphere(planes, sphere):
@@ -245,10 +250,10 @@ def testBoundingSphere(planes, sphere):
 
 -> P = (x, y, z)
 
--> (n * P) + d <= 0
+-> (n • P) + d <= 0
 </code></pre>
 
-<p>in pseudocode it translate to:</p>
+<p>In pseudocode it translate to:</p>
 
 <pre><code class="language-py">def testAABB(planes, aabb):
     plane_count = 0
@@ -256,6 +261,7 @@ def testBoundingSphere(planes, sphere):
         count = 0
         n = plane.vec3()
         d = plane.w
+
         p = Vec3(aabb.c.x + aabb.e.x, aabb.c.y + aabb.e.y, aabb.c.z + aabb.e.z)
         if(Vec3.dot(n, p) + d > 0):
             count++
@@ -327,6 +333,14 @@ def testBoundingSphere(planes, sphere):
   <td style="text-align:right;">46.15 %</td>
 </tr>
 <tr>
+  <td style="text-align:left;">‎</td>
+  <td style="text-align:right;">‎</td>
+  <td style="text-align:right;">‎</td>
+  <td style="text-align:right;">‎</td>
+  <td style="text-align:right;">‎</td>
+  <td style="text-align:right;">‎</td>
+</tr>
+<tr>
   <td style="text-align:left;">Bistro-1</td>
   <td style="text-align:right;">2909</td>
   <td style="text-align:right;">176</td>
@@ -367,6 +381,14 @@ def testBoundingSphere(planes, sphere):
   <td style="text-align:right;">3.71 %</td>
 </tr>
 <tr>
+  <td style="text-align:left;">‎</td>
+  <td style="text-align:right;">‎</td>
+  <td style="text-align:right;">‎</td>
+  <td style="text-align:right;">‎</td>
+  <td style="text-align:right;">‎</td>
+  <td style="text-align:right;">‎</td>
+</tr>
+<tr>
   <td style="text-align:left;">Tavern-1</td>
   <td style="text-align:right;">69</td>
   <td style="text-align:right;">62</td>
@@ -391,7 +413,7 @@ def testBoundingSphere(planes, sphere):
 </section><section id='bistro-timings'><h4 class='sticky-header'>Bistro Timings
 </h4>
 
-<p>Lets take a look at Bistro scene, it's sample asset that is large enough to make difference with frustrum culling. We have timings with Bounding Sphere:</p>
+<p>Lets take a look at Bistro scene, it's sample asset that is large enough to make difference with frustum culling. We have timings with Bounding Sphere:</p>
 
 <table>
 <thead>
@@ -448,9 +470,9 @@ def testBoundingSphere(planes, sphere):
 </tbody>
 </table>
 
-<p>The difference between before and after sphere frustrum culling is loud and clear, with improvement consistently around ~10.5%. The timing is well above its standard error of difference <code>SE Diff</code> so we know improvement isn't noise, but very real optimization. So, atleast sphere frustrum culling isn't useless.</p>
+<p>The difference between before and after sphere frustum culling is loud and clear, with improvement consistently around ~10.5%. The timing is well above its standard error of difference <code>SE Diff</code> so we know improvement isn't noise.</p>
 
-<p>Now lets see AABB frustrum culling performance:</p>
+<p>Now lets see AABB frustum culling performance:</p>
 
 <table>
 <thead>
@@ -507,7 +529,7 @@ def testBoundingSphere(planes, sphere):
 </tbody>
 </table>
 
-<p>We can say the same here, performance is very real with upto 11.09% improvement.</p>
+<p>We can say the same here, performance improved upto 11.09%.</p>
 
 <div class="image-wrapper"><img src="../assets/bistro_timing.png" alt=""></div>
 
@@ -523,11 +545,11 @@ def testBoundingSphere(planes, sphere):
 
 <div class="image-wrapper"><img src="../assets/bistro_timing_comp.png" alt=""></div>
 
-<p>From what we see above, Sphere frustrum culling appears to be somewhat better than AABB. Only in <code>Bistro-2</code> AABB win with some difference, while in <code>Bistro-3</code> AABB win is within margins of error.</p>
+<p>From what we see above, Sphere frustum culling appears to be somewhat better than AABB. Only in <code>Bistro-2</code> AABB win with some difference, while in <code>Bistro-3</code> AABB win is within margins of error.</p>
 </section><section id='the-junk-shop-timings'><h4 class='sticky-header'>The Junk Shop Timings
 </h4>
 
-<p>Sphere frustrum culling timings:</p>
+<p>Sphere frustum culling timings:</p>
 
 <table>
 <thead>
@@ -560,7 +582,7 @@ def testBoundingSphere(planes, sphere):
 </tbody>
 </table>
 
-<p>AABB frustrum culling timings:</p>
+<p>AABB frustum culling timings:</p>
 
 <table>
 <thead>
@@ -610,7 +632,7 @@ def testBoundingSphere(planes, sphere):
 </section><section id='tavern-timings'><h4 class='sticky-header'>Tavern Timings
 </h4>
 
-<p>Sphere frustrum culling timings:</p>
+<p>Sphere frustum culling timings:</p>
 
 <table>
 <thead>
@@ -643,7 +665,7 @@ def testBoundingSphere(planes, sphere):
 </tbody>
 </table>
 
-<p>AABB frustrum culling timings:</p>
+<p>AABB frustum culling timings:</p>
 
 <table>
 <thead>
@@ -697,7 +719,8 @@ def testBoundingSphere(planes, sphere):
     </main>
 
     <aside aria-label='Table of Contents' class='toc-nav'><div class='sticky-sidebar'><h3>Table Of Content</h3><nav><ul><li><a href='#content-top'>Back To Top</a></li><li><a href='#since-before'>Since before
-</a></li><li><a href='#frustrum-culling'>Frustrum Culling
+</a></li><li><a href='#frustum-culling'>Frustum Culling
+</a></li><li><a href='#bounding-structures'>Bounding Structures
 </a></li><li><a href='#implementation'>Implementation
 </a></li><li><a href='#bistro-timings'>Bistro Timings
 </a></li><li><a href='#the-junk-shop-timings'>The Junk Shop Timings
