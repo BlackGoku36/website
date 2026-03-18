@@ -387,3 +387,9 @@ In both of the camera, AABB wins against Sphere:
 - `Tavern-1`: AABB (668 ms) beats Sphere (677 ms), their difference (9 ms) is above then their SE Diff (2.14, 1.88).
 
 ![](../assets/tavern_timing_comp.png)
+
+## Conclusion
+
+Frustrum culling was the first step in improving the performance of a renderer, a step toward a hopeful real-time CPU rasterizer. 
+
+What surprising was the close fight between Sphere and AABB culling, with Sphere winning by a metre. Perhaps a more complicated and larger scene might change that? Also, since it follows glTF file and structure format, all the meshes are divided by materials, which might not be most efficient way to part meshes into most equal volumes. Lastly, there no hierarchical structure so, some desired milliseconds might be left out.
