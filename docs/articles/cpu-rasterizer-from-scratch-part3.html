@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-SDGTEQVJBG"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-SDGTEQVJBG');
+</script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urjasvi Suthar | Part 3</title>
+    <link rel="stylesheet" href="../css/prism-3.css">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="name">
+            <h1>Urjasvi Suthar</h1>
+            <button id="theme-toggle">
+<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M337.5-463Q311-498 289-537q-5 14-6.5 28.5T281-480q0 83 58 141t141 58q14 0 28.5-2t28.5-6q-39-22-74-48.5T396-396q-32-32-58.5-67ZM567-364.5Q630-328 702-308q-40 51-98 79.5T481-200q-117 0-198.5-81.5T201-480q0-65 28.5-123t79.5-98q20 72 56.5 135T453-452q51 51 114 87.5ZM743-380q-20-5-39.5-11T665-405q8-18 11.5-36.5T680-480q0-83-58.5-141.5T480-680q-20 0-38.5 3.5T405-665q-8-19-13.5-38T381-742q24-9 49-13.5t51-4.5q117 0 198.5 81.5T761-480q0 26-4.5 51T743-380ZM440-840v-120h80v120h-80Zm0 840v-120h80V0h-80Zm323-706-57-57 85-84 57 56-85 85ZM169-113l-57-56 85-85 57 57-85 84Zm671-327v-80h120v80H840ZM0-440v-80h120v80H0Zm791 328-85-85 57-57 84 85-56 57ZM197-706l-84-85 56-57 85 85-57 57Zm199 310Z"/></svg>
+</button>
+        </div>
+
+        <nav>
+            <a href="../index.html">Home</a><a href="../projects.html">Projects</a><a href="../articles.html">Articles</a>
+        </nav>
+    </header>
+
+    <div class="layout-grid">
+
+    <aside aria-label='Series Navigation' class='series-nav'><div class='sticky-sidebar'><h3>CPU Rasterizer From Scratch</h3><nav><ul><li><a href='cpu-rasterizer-from-scratch-part1.html'>Part 1</a></li><li><a href='cpu-rasterizer-from-scratch-part2.html'>Part 2</a></li><li><a href='cpu-rasterizer-from-scratch-part3.html'>- Part 3</a></li></ul></nav></div></aside>
+
+    <main>
+        <article id="content-top">
+	<header class="article-header">
+		<h1>Part 3</h1>
+	</header>
+		<section id='since-before'><h2 class='sticky-header'>Since before
+</h2>
+
+<p>Since the previous article, I have implemented a lot of graphics techniques and expanded it functionality. From being able
+to load <code>.glTF</code> file for more complicated scenes (with triangle clipping), to LTC area light, PBR shading and transmissive materials. It allowed me to render cool scenes
+made by cool artists like <code>The Junk Shop</code>:</p>
+
+<div class="image-wrapper"><img src="../assets/junkshop_final.png" alt="Junkshop Scene"></div>
+
+<p>and modern sample assets such as <code>Lumberyard Bistro</code>:</p>
+
+<div class="image-wrapper"><img src="../assets/pointlight.png" alt="Bistro Scene"></div>
+
+<p>ensuring HDR screens are not wasted:</p>
+
+<div class="image-wrapper"><img src="../assets/0_helmet.avif" alt="Damaged Helmet"></div>
+
+<blockquote><p>Make sure your browser supports <code>.avif</code> file, or your screen supports HDR content</p>
+</blockquote>
+
+<p>I haven't written much for it, other than simple <a href="zigcpurasterizer.html">project page</a> as part of portflio. The reason for that is simple:</p>
+
+<ul>
+<li>There wasn't anything worth documenting that wouldn't be found by simple google search or something that people haven't already wrote 1000s of words about it.</li>
+</ul>
+
+<p>As I am satisfied with the visual quality I have achieved for a CPU software rasterizer, I wanted to chase performance, hoping to getting in range of real-time (~50ms) rendering for midly complex scene. This is what majority of post is about.</p>
+</section><section id='frustrum-culling'><h2 class='sticky-header'>Frustrum Culling
+</h2>
+
+<p>Clip-space is defined by multiplying vertex/point with View-Project (VP) matrix.</p>
+
+<p>In clip-space, its volume is defined by,</p>
+
+<pre><code class="language-md"> -Wc <= Xc/Yc/Zc <= Wc, where Pc = (Xc, Yc, Zc, Wc) is a point in clip-space
+</code></pre>
+
+<p>and its 6 planes are,</p>
+
+<pre><code class="language-md">-> -Wc <= Xc  = Left Plane
+->  Xc <= Wc  = Right Plane
+-> -Wc <= Yc  = Top Plane
+->  Yc <= Wc  = Bottom Plane
+-> -Wc <= Zc  = Near Plane
+->  Zc <= Wc  = Far Plane
+</code></pre>
+
+<p>if we re-arrange them, we get</p>
+
+<pre><code class="language-md">-> Wc + Xc >= 0  = Left Plane
+-> Wc - Xc >= 0  = Right Plane
+-> Wc + Yc >= 0  = Top Plane              (EQ-0)
+-> Wc - Yc >= 0  = Bottom Plane
+-> Wc + Zc >= 0  = Near Plane
+-> Wc - Zc >= 0  = Far Plane
+</code></pre>
+
+<p>Now, consider matrix multiplication of <code>VP</code> matrix and a world space point <code>P</code> to get clip-space point <code>Pc</code>,</p>
+
+<pre><code class="language-md">-> Pc = VP * P
+</code></pre>
+
+<p>Let represent VP matrix by rows,</p>
+
+<pre><code class="language-md">->
+     | Row0 |   | X |
+Pc = | Row1 | * | Y | , where RowN represent each row of VP matrix
+     | Row2 |   | Z |
+     | Row3 |   | W |
+
+</code></pre>
+
+<p>results in,</p>
+
+<pre><code class="language-md">-> Xc = Row0 * P
+-> Yc = Row1 * P            (EQ-1)
+-> Zc = Row2 * P
+-> Wc = Row3 * P
+</code></pre>
+
+<p>Substituting <code>EQ-1</code> in <code>EQ-0</code>, we get</p>
+
+<pre><code class="language-md">-> (Row3 * P) + (Row0 * P) >= 0  = Left Plane
+-> (Row3 * P) - (Row0 * P) >= 0  = Right Plane
+-> (Row3 * P) + (Row1 * P) >= 0  = Top Plane
+-> (Row3 * P) - (Row1 * P) >= 0  = Bottom Plane
+-> (Row3 * P) + (Row2 * P) >= 0  = Near Plane
+-> (Row3 * P) - (Row2 * P) >= 0  = Far Plane
+</code></pre>
+
+<p>re-arranging them, we get</p>
+
+<pre><code class="language-md">-> (Row3 + Row0) * P >= 0  = Left Plane
+-> (Row3 - Row0) * P >= 0  = Right Plane
+-> (Row3 + Row1) * P >= 0  = Top Plane
+-> (Row3 - Row1) * P >= 0  = Bottom Plane
+-> (Row3 + Row2) * P >= 0  = Near Plane
+-> (Row3 - Row2) * P >= 0  = Far Plane
+</code></pre>
+
+<p>Looks similar? It vector equation for each plane. Consider <code>Left Plane</code>, let expand <code>Row3</code> and <code>Row0</code></p>
+
+<pre><code class="language-txt">-> Row0 = (VP_00, VP_01, VP_02, VP_03)
+-> Row3 = (VP_30, VP_31, VP_32, VP_33)
+
+-> Row3 + Row0 = (VP_30 + VP_00, VP_31 + VP_01, VP_32 + VP_02, VP_33 + VP_03)
+</code></pre>
+
+<p>Lets rename each components</p>
+
+<pre><code class="language-txt">-> A = VP_30 + VP_00
+-> B = VP_31 + VP_01
+-> C = VP_32 + VP_02
+-> D = VP_33 + VP_03
+</code></pre>
+
+<p>If we do dot product of <code>(Row3 + Row0) = (A, B, C, D)</code> with <code>P = (X, Y, Z, 1)</code> we get</p>
+
+<pre><code class="language-txt">AX + BY + CZ + D >= 0
+</code></pre>
+
+<p>Which is general equation of plane. A, B, C would represent normal and D the distance. Pseudocode would look like:</p>
+
+<pre><code class="language-py">def extractPlanes(view_projection_matrix):
+    row0 = view_projection_matrix.row0()
+    row1 = view_projection_matrix.row1()
+    row2 = view_projection_matrix.row2()
+    row3 = view_projection_matrix.row3()
+
+    planes = [
+        Vec4.add(row3, row0), # Left Plane
+        Vec4.sub(row3, row0), # Right Plane
+        Vec4.add(row3, row1), # Top Plane
+        Vec4.sub(row3, row1), # Bottom Plane
+        Vec4.add(row3, row2), # Near Plane
+        Vec4.sub(row3, row2) # Far Plane
+    ]
+
+    for plane in planes:
+        len = sqrt(plane.x * plane.x + plane.y * plane.y + plane.z * plane.z)
+        plane.x /= len
+        plane.y /= len
+        plane.z /= len
+        plane.w /= len
+
+    return planes
+</code></pre>
+
+<hr />
+
+<p>There are multiple kind of bounding structures:</p>
+
+<ul>
+<li>Bounding Sphere</li>
+<li>Axis-Aligned Bounding Box (AABB)</li>
+<li>Oriented Bounding Box (OBB)</li>
+<li>Convex Hull</li>
+</ul>
+
+<p>Among the fastest is Bounding Sphere and then AABB, but among the best bounded is OBB and Convex Hull. Each of them have their own use. For rasterizer need, we want to be able to quickly discard the object if it entirely out of frustrum, and since our rasterizer has software triangle clipping (which can be a bottleneck) we want to do it only on objects intersecting the plane. So, we want the culling test to be fast with structure compact enough to minimize triangle clipping. Bounding Sphere and AABB are probably good enough for it.</p>
+
+<p>To test sphere and plane intersection, we plug sphere's center into plane equation (sphere represented with center <code>S</code> and radius <code>R</code>):</p>
+
+<pre><code class="language-txt">ASx + BSy + CSz + D = 0
+</code></pre>
+
+<p>For each plane, we get three cases:</p>
+
+<pre><code class="language-txt">->       ASx + BSy + CSz + D > R   , completely inside the frustrum
+->       ASx + BSy + CSz + D < -R  , completely outside the frustrum
+-> R <= ASx + BSy + CSz + D <= -R  , intersecting the frustrum
+</code></pre>
+
+<p>psuedocode would look something like:</p>
+
+<pre><code class="language-py">
+def testBoundingSphere(planes, sphere):
+    count = 0
+    for plane in planes:
+        n = plane.vec3()
+        d = plane.w
+        distance = Vec3.dot(n, sphere.center) + d
+
+        if distance < -sphere.radius:
+            return "Outside"
+        if distance > sphere.radius:
+            count += 1
+
+    if count == 6:
+        return "Inside"
+    else:
+        return "On-plane"
+</code></pre>
+
+<p>Culling test for AABB isn't much more complicated, though it little bit more computationally expensive. AABB can be represent in multiple ways, we represent it as Center <code>C</code> + Extent <code>E</code> (size). This way we can get each point and only store 6 floats. Test is straight forward, check if each point is "inside" the plane.</p>
+
+<p>Example for one of the point if it completely inside:</p>
+
+<pre><code class="language-txt">-> x = Cx + Ex
+-> y = Cy + Ey
+-> z = Cz + Ez
+
+-> P = (x, y, z)
+
+-> (n * P) + d <= 0
+</code></pre>
+
+<p>in pseudocode it translate to:</p>
+
+<pre><code class="language-py">def testAABB(planes, aabb):
+    plane_count = 0
+    for plane in planes:
+        count = 0
+        n = plane.vec3()
+        d = plane.w
+        p = Vec3(aabb.c.x + aabb.e.x, aabb.c.y + aabb.e.y, aabb.c.z + aabb.e.z)
+        if(Vec3.dot(n, p) + d > 0):
+            count++
+        p = Vec3(aabb.c.x - aabb.e.x, aabb.c.y + aabb.e.y, aabb.c.z + aabb.e.z)
+        if(Vec3.dot(n, p) + d > 0):
+            count++
+        p = Vec3(aabb.c.x + aabb.e.x, aabb.c.y - aabb.e.y, aabb.c.z + aabb.e.z)
+        if(Vec3.dot(n, p) + d > 0):
+            count++
+        p = Vec3(aabb.c.x + aabb.e.x, aabb.c.y + aabb.e.y, aabb.c.z - aabb.e.z)
+        if(Vec3.dot(n, p) + d > 0):
+            count++
+        p = Vec3(aabb.c.x - aabb.e.x, aabb.c.y - aabb.e.y, aabb.c.z + aabb.e.z)
+        if(Vec3.dot(n, p) + d > 0):
+            count++
+        p = Vec3(aabb.c.x + aabb.e.x, aabb.c.y - aabb.e.y, aabb.c.z - aabb.e.z)
+        if(Vec3.dot(n, p) + d > 0):
+            count++
+        p = Vec3(aabb.c.x - aabb.e.x, aabb.c.y + aabb.e.y, aabb.c.z - aabb.e.z)
+        if(Vec3.dot(n, p) + d > 0):
+            count++
+        p = Vec3(aabb.c.x - aabb.e.x, aabb.c.y - aabb.e.y, aabb.c.z - aabb.e.z)
+        if(Vec3.dot(n, p) + d > 0):
+            count++
+
+        if(count == 0):
+            return "Outside"
+        if(count == 8):
+            plane_count++
+
+    if(plane_count == 6):
+        return "Inside"
+    else:
+        return "On-plane"
+</code></pre>
+
+<p>Computationally, the AABB test is more expensive but if it culls better than sphere, better enough to reduce more pressure on culling test compared to sphere, than AABB should be faster. </p>
+</section><section id='implementation'><h3 class='sticky-header'>Implementation
+</h3>
+
+<p>Here we have total object count, and "on-plane" object count for each bounding structure. Lower "on-plane" object count is better.</p>
+
+<table>
+<thead>
+<tr>
+  <th style="text-align:left;">Scene-Camera</th>
+  <th style="text-align:right;">Total</th>
+  <th style="text-align:right;">Sphere (on-plane)</th>
+  <th style="text-align:right;">Sphere % (on-plane)</th>
+  <th style="text-align:right;">AABB (on-plane)</th>
+  <th style="text-align:right;">AABB % (on-plane)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td style="text-align:left;">JunkShop-1</td>
+  <td style="text-align:right;">78</td>
+  <td style="text-align:right;">58</td>
+  <td style="text-align:right;">74.36 %</td>
+  <td style="text-align:right;">50</td>
+  <td style="text-align:right;">64.1 %</td>
+</tr>
+<tr>
+  <td style="text-align:left;">JunkShop-2</td>
+  <td style="text-align:right;">78</td>
+  <td style="text-align:right;">48</td>
+  <td style="text-align:right;">61.54 %</td>
+  <td style="text-align:right;">36</td>
+  <td style="text-align:right;">46.15 %</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Bistro-1</td>
+  <td style="text-align:right;">2909</td>
+  <td style="text-align:right;">176</td>
+  <td style="text-align:right;">6.05 %</td>
+  <td style="text-align:right;">144</td>
+  <td style="text-align:right;">4.95 %</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Bistro-2</td>
+  <td style="text-align:right;">2909</td>
+  <td style="text-align:right;">258</td>
+  <td style="text-align:right;">8.87 %</td>
+  <td style="text-align:right;">188</td>
+  <td style="text-align:right;">6.46 %</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Bistro-3</td>
+  <td style="text-align:right;">2909</td>
+  <td style="text-align:right;">268</td>
+  <td style="text-align:right;">9.21 %</td>
+  <td style="text-align:right;">196</td>
+  <td style="text-align:right;">6.74 %</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Bistro-4</td>
+  <td style="text-align:right;">2909</td>
+  <td style="text-align:right;">210</td>
+  <td style="text-align:right;">7.22 %</td>
+  <td style="text-align:right;">150</td>
+  <td style="text-align:right;">5.16 %</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Bistro-5</td>
+  <td style="text-align:right;">2909</td>
+  <td style="text-align:right;">157</td>
+  <td style="text-align:right;">5.4 %</td>
+  <td style="text-align:right;">108</td>
+  <td style="text-align:right;">3.71 %</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Tavern-1</td>
+  <td style="text-align:right;">69</td>
+  <td style="text-align:right;">62</td>
+  <td style="text-align:right;">89.86 %</td>
+  <td style="text-align:right;">62</td>
+  <td style="text-align:right;">89.86 %</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Tavern-2</td>
+  <td style="text-align:right;">69</td>
+  <td style="text-align:right;">66</td>
+  <td style="text-align:right;">95.65 %</td>
+  <td style="text-align:right;">62</td>
+  <td style="text-align:right;">89.86 %</td>
+</tr>
+</tbody>
+</table>
+
+<div class="image-collage"><div class="image-wrapper"><img src="../assets/junkshop_objects.png" alt=""></div><div class="image-wrapper"><img src="../assets/bistro_objects.png" alt=""></div><div class="image-wrapper"><img src="../assets/tavern_objects.png" alt=""></div></div>
+
+<p>We can see AABB consistently perform better than sphere when it culling as accurately as possible and leaving less objects on plane for triangle clipping. This must mean we can also expect timing to be better for AABB, right?</p>
+</section><section id='bistro-timings'><h4 class='sticky-header'>Bistro Timings
+</h4>
+
+<p>Lets take a look at Bistro scene, it's sample asset that is large enough to make difference with frustrum culling. We have timings with Bounding Sphere:</p>
+
+<table>
+<thead>
+<tr>
+  <th style="text-align:left;">Scene-Camera</th>
+  <th style="text-align:right;">Before (ms)</th>
+  <th style="text-align:right;">Sphere (ms)</th>
+  <th style="text-align:right;">Diff (ms)</th>
+  <th style="text-align:right;">SE Diff (ms)</th>
+  <th style="text-align:right;">Improvement (%)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td style="text-align:left;">Bistro-1</td>
+  <td style="text-align:right;">2126</td>
+  <td style="text-align:right;">1894</td>
+  <td style="text-align:right;">232</td>
+  <td style="text-align:right;">4.56</td>
+  <td style="text-align:right;">10.91 %</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Bistro-2</td>
+  <td style="text-align:right;">2237</td>
+  <td style="text-align:right;">2001</td>
+  <td style="text-align:right;">236</td>
+  <td style="text-align:right;">5.9</td>
+  <td style="text-align:right;">10.55 %</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Bistro-3</td>
+  <td style="text-align:right;">2138</td>
+  <td style="text-align:right;">1911</td>
+  <td style="text-align:right;">227</td>
+  <td style="text-align:right;">6.31</td>
+  <td style="text-align:right;">10.62 %</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Bistro-4</td>
+  <td style="text-align:right;">2880</td>
+  <td style="text-align:right;">2580</td>
+  <td style="text-align:right;">300</td>
+  <td style="text-align:right;">7.95</td>
+  <td style="text-align:right;">10.42 %</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Bistro-5</td>
+  <td style="text-align:right;">2554</td>
+  <td style="text-align:right;">2274</td>
+  <td style="text-align:right;">280</td>
+  <td style="text-align:right;">6.12</td>
+  <td style="text-align:right;">10.96 %</td>
+</tr>
+</tbody>
+</table>
+
+<p>The difference between before and after sphere frustrum culling is loud and clear, with improvement consistently around ~10.5%. The timing is well above its standard error of difference <code>SE Diff</code> so we know improvement isn't noise, but very real optimization. So, atleast sphere frustrum culling isn't useless.</p>
+
+<p>Now lets see AABB frustrum culling performance:</p>
+
+<table>
+<thead>
+<tr>
+  <th style="text-align:left;">Scene-Camera</th>
+  <th style="text-align:right;">Before (ms)</th>
+  <th style="text-align:right;">AABB (ms)</th>
+  <th style="text-align:right;">Diff (ms)</th>
+  <th style="text-align:right;">SE Diff (ms)</th>
+  <th style="text-align:right;">Improvement (%)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td style="text-align:left;">Bistro-1</td>
+  <td style="text-align:right;">2126</td>
+  <td style="text-align:right;">1911</td>
+  <td style="text-align:right;">215</td>
+  <td style="text-align:right;">2.87</td>
+  <td style="text-align:right;">10.11</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Bistro-2</td>
+  <td style="text-align:right;">2237</td>
+  <td style="text-align:right;">1989</td>
+  <td style="text-align:right;">248</td>
+  <td style="text-align:right;">4.33</td>
+  <td style="text-align:right;">11.09</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Bistro-3</td>
+  <td style="text-align:right;">2138</td>
+  <td style="text-align:right;">1907</td>
+  <td style="text-align:right;">231</td>
+  <td style="text-align:right;">6.15</td>
+  <td style="text-align:right;">10.8</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Bistro-4</td>
+  <td style="text-align:right;">2880</td>
+  <td style="text-align:right;">2632</td>
+  <td style="text-align:right;">248</td>
+  <td style="text-align:right;">2.6</td>
+  <td style="text-align:right;">8.61</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Bistro-5</td>
+  <td style="text-align:right;">2554</td>
+  <td style="text-align:right;">2283</td>
+  <td style="text-align:right;">271</td>
+  <td style="text-align:right;">2.36</td>
+  <td style="text-align:right;">10.61</td>
+</tr>
+</tbody>
+</table>
+
+<p>We can say the same here, performance is very real with upto 11.09% improvement.</p>
+
+<div class="image-wrapper"><img src="../assets/bistro_timing.png" alt=""></div>
+
+<p>Now lets compare, both method and see which is actually better.</p>
+
+<ul>
+<li><code>Bistro-4</code>: Sphere (2580 ms) beats AABB (2632 ms), their difference (52 ms) is well above their SE Diff (7.95 ms and 2.6 ms).</li>
+<li><code>Bistro-1</code>: Sphere (1894 ms) beats AABB (1911 ms), their difference (17 ms) is above their SE Diff (4.56 ms and 2.87 ms).</li>
+<li><code>Bistro-5</code>: Sphere (2274 ms) barely beats AABB (2283 ms), their difference (9 ms) is slightly above their SE Diff (6.12 ms and 2.36 ms).</li>
+<li><code>Bistro-2</code>: AABB (1989 ms) beats Sphere (2001 ms), their difference (12 ms) is above their SE Diff (4.33 ms and 5.9 ms).</li>
+<li><code>Bistro-3</code>: Its a tie between AABB (1907 ms) and Sphere (1911 ms), their difference (4 ms) is lower their SE Diff (6.15 ms and 6.31 ms).</li>
+</ul>
+
+<div class="image-wrapper"><img src="../assets/bistro_timing_comp.png" alt=""></div>
+
+<p>From what we see above, Sphere frustrum culling appears to be somewhat better than AABB. Only in <code>Bistro-2</code> AABB win with some difference, while in <code>Bistro-3</code> AABB win is within margins of error.</p>
+</section><section id='the-junk-shop-timings'><h4 class='sticky-header'>The Junk Shop Timings
+</h4>
+
+<p>Sphere frustrum culling timings:</p>
+
+<table>
+<thead>
+<tr>
+  <th style="text-align:left;">Scene-Camera</th>
+  <th style="text-align:right;">Before (ms)</th>
+  <th style="text-align:right;">Sphere (ms)</th>
+  <th style="text-align:right;">Diff (ms)</th>
+  <th style="text-align:right;">SE Diff (ms)</th>
+  <th style="text-align:right;">Improvement (%)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td style="text-align:left;">JunkShop-1</td>
+  <td style="text-align:right;">2458</td>
+  <td style="text-align:right;">2263</td>
+  <td style="text-align:right;">195</td>
+  <td style="text-align:right;">4.72</td>
+  <td style="text-align:right;">7.93</td>
+</tr>
+<tr>
+  <td style="text-align:left;">JunkShop-2</td>
+  <td style="text-align:right;">2016</td>
+  <td style="text-align:right;">1814</td>
+  <td style="text-align:right;">202</td>
+  <td style="text-align:right;">5.72</td>
+  <td style="text-align:right;">10.02</td>
+</tr>
+</tbody>
+</table>
+
+<p>AABB frustrum culling timings:</p>
+
+<table>
+<thead>
+<tr>
+  <th style="text-align:left;">Scene-Camera</th>
+  <th style="text-align:right;">Before (ms)</th>
+  <th style="text-align:right;">AABB (ms)</th>
+  <th style="text-align:right;">Diff (ms)</th>
+  <th style="text-align:right;">SE Diff (ms)</th>
+  <th style="text-align:right;">Improvement (%)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td style="text-align:left;">JunkShop-1</td>
+  <td style="text-align:right;">2458</td>
+  <td style="text-align:right;">2275</td>
+  <td style="text-align:right;">183</td>
+  <td style="text-align:right;">7.6</td>
+  <td style="text-align:right;">7.45</td>
+</tr>
+<tr>
+  <td style="text-align:left;">JunkShop-2</td>
+  <td style="text-align:right;">2016</td>
+  <td style="text-align:right;">1810</td>
+  <td style="text-align:right;">206</td>
+  <td style="text-align:right;">5.23</td>
+  <td style="text-align:right;">10.22</td>
+</tr>
+</tbody>
+</table>
+
+<p>Even though the object culling count isn't as stellar as <code>Bistro</code> scene, rejection of fewer but higher poly mesh has contributed to higher improvement.</p>
+
+<div class="image-wrapper"><img src="../assets/junkshop_timing.png" alt=""></div>
+
+<p>If we compare both methods, we can see:</p>
+
+<ul>
+<li><code>JunkShop-1</code>: Sphere (2263 ms) beats AABB (2275 ms), their difference (12 ms) is above their SE Diff (4.72 ms and 7.6 ms).</li>
+<li><code>JunkShop-2</code>: Its a tie between AABB (1810 ms) and Sphere (1814 ms), their difference (4 ms) is below their SE Diff (5.23 ms and 5.72 ms).</li>
+</ul>
+
+<div class="image-wrapper"><img src="../assets/junkshop_timing_comp.png" alt=""></div>
+
+<p>Sphere culling again appears to be slightly better than AABB.</p>
+</section><section id='tavern-timings'><h4 class='sticky-header'>Tavern Timings
+</h4>
+
+<p>Sphere frustrum culling timings:</p>
+
+<table>
+<thead>
+<tr>
+  <th style="text-align:left;">Scene-Camera</th>
+  <th style="text-align:right;">Before (ms)</th>
+  <th style="text-align:right;">Sphere (ms)</th>
+  <th style="text-align:right;">Diff (ms)</th>
+  <th style="text-align:right;">SE Diff (ms)</th>
+  <th style="text-align:right;">Improvement (%)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td style="text-align:left;">Tavern-1</td>
+  <td style="text-align:right;">588</td>
+  <td style="text-align:right;">579</td>
+  <td style="text-align:right;">9</td>
+  <td style="text-align:right;">2.09</td>
+  <td style="text-align:right;">1.53</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Tavern-2</td>
+  <td style="text-align:right;">681</td>
+  <td style="text-align:right;">677</td>
+  <td style="text-align:right;">4</td>
+  <td style="text-align:right;">2.14</td>
+  <td style="text-align:right;">0.59</td>
+</tr>
+</tbody>
+</table>
+
+<p>AABB frustrum culling timings:</p>
+
+<table>
+<thead>
+<tr>
+  <th style="text-align:left;">Scene-Camera</th>
+  <th style="text-align:right;">Before (ms)</th>
+  <th style="text-align:right;">AABB (ms)</th>
+  <th style="text-align:right;">Diff (ms)</th>
+  <th style="text-align:right;">SE Diff (ms)</th>
+  <th style="text-align:right;">Improvement (%)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td style="text-align:left;">Tavern-1</td>
+  <td style="text-align:right;">588</td>
+  <td style="text-align:right;">575</td>
+  <td style="text-align:right;">13</td>
+  <td style="text-align:right;">2.1</td>
+  <td style="text-align:right;">2.21</td>
+</tr>
+<tr>
+  <td style="text-align:left;">Tavern-2</td>
+  <td style="text-align:right;">681</td>
+  <td style="text-align:right;">668</td>
+  <td style="text-align:right;">13</td>
+  <td style="text-align:right;">1.88</td>
+  <td style="text-align:right;">1.91</td>
+</tr>
+</tbody>
+</table>
+
+<p>Although very small, there is real improvement in speed.</p>
+
+<div class="image-wrapper"><img src="../assets/tavern_timing.png" alt=""></div>
+
+<p>In both of the camera, AABB wins against Sphere:</p>
+
+<ul>
+<li><code>Tavern-1</code>: AABB (575 ms) beats Sphere (579 ms), their difference (4 ms) is above then their SE Diff (2.09, 2.1).</li>
+<li><code>Tavern-1</code>: AABB (668 ms) beats Sphere (677 ms), their difference (9 ms) is above then their SE Diff (2.14, 1.88).</li>
+</ul>
+
+<div class="image-wrapper"><img src="../assets/tavern_timing_comp.png" alt=""></div>
+</section>
+
+		<footer class='pagination'><nav><a href='cpu-rasterizer-from-scratch-part2.html'>< Prev</a><a href='../articles.html'>Articles</a></nav></footer>
+
+</article>
+
+    </main>
+
+    <aside aria-label='Table of Contents' class='toc-nav'><div class='sticky-sidebar'><h3>Table Of Content</h3><nav><ul><li><a href='#content-top'>Back To Top</a></li><li><a href='#since-before'>Since before
+</a></li><li><a href='#frustrum-culling'>Frustrum Culling
+</a></li><li><a href='#implementation'>Implementation
+</a></li><li><a href='#bistro-timings'>Bistro Timings
+</a></li><li><a href='#the-junk-shop-timings'>The Junk Shop Timings
+</a></li><li><a href='#tavern-timings'>Tavern Timings
+</a></li></ul></nav></div></aside>
+
+    </div>
+
+    <footer class="contacts">
+    	<address><a href="https://x.com/UrjasviS">Twitter</a><a href="https://github.com/BlackGoku36">Github</a><a href="mailto:urjasvisuthar@gmail.com">Email</a><a href="https://www.linkedin.com/in/urjasvi-suthar-bg36">LinkedIn</a></address>
+        <p>&copy; 2026 Urjasvi Suthar</p>
+    </footer>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/prism-3.js"></script>
+</body>
+</html>

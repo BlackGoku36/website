@@ -371,6 +371,10 @@ td, th{
 	padding: 5px 10px;
 }
 
+tr:nth-child(even) {
+	background-color: var(--border);
+}
+
 blockquote {
 	border: 2px dashed var(--border);
 	padding: 0 20px;
