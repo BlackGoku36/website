@@ -26,7 +26,9 @@ As I am satisfied with the visual quality I have achieved for a CPU software ras
 
 One of the biggest performance issue in computer graphics is doing computation on things that isn't going to show up on screen. We want to reduce them as much as possible. These computations in this case is triangle clipping. Right now, rasterizer do clipping test on *every single* triangle, including all the triangles of the mesh that is either completely inside/outside the view frustum. With frustum culling, we immediately reject mesh outside the frustum, and only perform clipping test on meshes lying on planes.
 
-Lets first look at the theory behind frustrum culling, then we will look at pseudocode and finally benchmark of implementation.
+---
+
+Lets first take a look at the theory behind frustrum culling, then we will look at pseudocode and finally at benchmark of the implementation.
 
 In a standard graphics pipeline, clip-space is defined by the View-Projection (VP) matrix. A point `Pc` is inside the visible volume if:
 
@@ -393,3 +395,8 @@ In both of the camera, AABB wins against Sphere:
 Frustrum culling was the first step in improving the performance of a renderer, a step toward a hopeful real-time CPU rasterizer. 
 
 What surprising was the close fight between Sphere and AABB culling, with Sphere winning by a metre. Perhaps a more complicated and larger scene might change that? Also, since it follows glTF file and structure format, all the meshes are divided by materials, which might not be most efficient way to part meshes into most equal volumes. Lastly, there no hierarchical structure so, some desired milliseconds might be left out.
+
+## Read Also
+
+- [View frustum culling - Mark Morley](http://www.racer.nl/reference/vfc_markmorley.htm)
+- [Libretexts - Mathematics](https://math.libretexts.org/Bookshelves/Calculus/Calculus_(OpenStax)/12%3A_Vectors_in_Space/12.05%3A_Equations_of_Lines_and_Planes_in_Space)

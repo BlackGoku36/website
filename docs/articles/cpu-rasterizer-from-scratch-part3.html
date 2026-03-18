@@ -73,7 +73,9 @@ made by cool artists like <code>The Junk Shop</code>:</p>
 
 <p>One of the biggest performance issue in computer graphics is doing computation on things that isn't going to show up on screen. We want to reduce them as much as possible. These computations in this case is triangle clipping. Right now, rasterizer do clipping test on <em>every single</em> triangle, including all the triangles of the mesh that is either completely inside/outside the view frustum. With frustum culling, we immediately reject mesh outside the frustum, and only perform clipping test on meshes lying on planes.</p>
 
-<p>Lets first look at the theory behind frustrum culling, then we will look at pseudocode and finally benchmark of implementation.</p>
+<hr />
+
+<p>Lets first take a look at the theory behind frustrum culling, then we will look at pseudocode and finally at benchmark of the implementation.</p>
 
 <p>In a standard graphics pipeline, clip-space is defined by the View-Projection (VP) matrix. A point <code>Pc</code> is inside the visible volume if:</p>
 
@@ -715,7 +717,14 @@ def testBoundingSphere(planes, sphere):
 
 <p>Frustrum culling was the first step in improving the performance of a renderer, a step toward a hopeful real-time CPU rasterizer. </p>
 
-<p>What surprising was the close fight between Sphere and AABB culling, with Sphere winning by a metre. Perhaps a more complicated and larger scene might change that? Also, since it follows glTF file and structure format, all the meshes are divided by materials, which might not be most efficient way to part meshes into most equal volumes. Lastly, there no hierarchical structure, so some desired milliseconds might be left out.</p>
+<p>What surprising was the close fight between Sphere and AABB culling, with Sphere winning by a metre. Perhaps a more complicated and larger scene might change that? Also, since it follows glTF file and structure format, all the meshes are divided by materials, which might not be most efficient way to part meshes into most equal volumes. Lastly, there no hierarchical structure so, some desired milliseconds might be left out.</p>
+</section><section id='read-also'><h2 class='sticky-header'>Read Also
+</h2>
+
+<ul>
+<li><a href="http://www.racer.nl/reference/vfc_markmorley.htm">View frustum culling - Mark Morley</a></li>
+<li><a href="https://math.libretexts.org/Bookshelves/Calculus/Calculus_(OpenStax)/12%3A_Vectors_in_Space/12.05%3A_Equations_of_Lines_and_Planes_in_Space">Libretexts - Mathematics</a></li>
+</ul>
 </section>
 
 		<footer class='pagination'><nav><a href='cpu-rasterizer-from-scratch-part2.html'>< Prev</a><a href='../articles.html'>Articles</a></nav></footer>
@@ -732,6 +741,7 @@ def testBoundingSphere(planes, sphere):
 </a></li><li><a href='#the-junk-shop-timings'>The Junk Shop Timings
 </a></li><li><a href='#tavern-timings'>Tavern Timings
 </a></li><li><a href='#conclusion'>Conclusion
+</a></li><li><a href='#read-also'>Read Also
 </a></li></ul></nav></div></aside>
 
     </div>
