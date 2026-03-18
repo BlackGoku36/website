@@ -396,7 +396,22 @@ Frustrum culling was the first step in improving the performance of a renderer, 
 
 What surprising was the close fight between Sphere and AABB culling, with Sphere winning by a metre. Perhaps a more complicated and larger scene might change that? Also, since it follows glTF file and structure format, all the meshes are divided by materials, which might not be most efficient way to part meshes into most equal volumes. Lastly, there no hierarchical structure so, some desired milliseconds might be left out.
 
+## Screenshots
+
+![Tavern](../assets/0_junkshop.png)
+![Tavern](../assets/1_junkshop.png)
+![Tavern](../assets/0_bistro.png)
+![Tavern](../assets/1_bistro.png)
+![Tavern](../assets/2_bistro.png)
+![Tavern](../assets/3_bistro.png)
+![Tavern](../assets/4_bistro.png)
+![Tavern](../assets/0_tavern.png)
+![Tavern](../assets/1_tavern.png)
+
 ## Read Also
 
 - [View frustum culling - Mark Morley](http://www.racer.nl/reference/vfc_markmorley.htm)
 - [Libretexts - Mathematics](https://math.libretexts.org/Bookshelves/Calculus/Calculus_(OpenStax)/12%3A_Vectors_in_Space/12.05%3A_Equations_of_Lines_and_Planes_in_Space)
+- [The Junk Shop - Alex Treviño](https://download.blender.org/archive/gallery/blender-splash-screens/blender-2-81/)
+- [Amazon Lumberyard Bistro](https://github.com/zeux/niagara_bistro)
+- [Tavern - Gnossiennes](https://sketchfab.com/3d-models/the-tavern-under-the-falling-pigeon-f893c00f9fc34dde9e92870b3aea12f5)
